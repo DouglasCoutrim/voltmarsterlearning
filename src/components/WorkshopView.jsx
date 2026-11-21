@@ -11,6 +11,11 @@ export default function WorkshopView({
   copyWhatsAppQuote,
   t,
 }) {
+  const total = Object.values(selectedServices).reduce(
+    (acc, checked, idx) => (checked ? acc + PRICING_SERVICES[idx].price : acc),
+    0
+  );
+
   return (
     <section id="view-workshop" className="hidden space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -31,13 +36,25 @@ export default function WorkshopView({
           <div id="checklist-items" className="space-y-2.5">
             {CHECKLIST_DATA.map((item, i) => {
               const on = checklist[i];
-              return React.createElement('button', {
-                key: i,
-                onClick: () => toggleChecklist(i),
-                className: `w-full text-left p-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center gap-3 transition ${
-                  on ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-100' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                }`,
-              }, React.createElement('span', { className: "text-base" }, on ? '✅' : '⬜'), React.createElement('span', null, React.createElement('strong', { className: "font-mono-tech text-emerald-400 mr-1" }, `${i + 1}.`), item[lang])));
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggleChecklist(i)}
+                  className={`w-full text-left p-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center gap-3 transition ${
+                    on
+                      ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-100'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="text-base">{on ? '✅' : '⬜'}</span>
+                  <span>
+                    <strong className="font-mono-tech text-emerald-400 mr-1">
+                      {i + 1}.
+                    </strong>
+                    {item[lang]}
+                  </span>
+                </button>
+              );
             })}
           </div>
           <div id="chk-release-banner" className="mt-4 p-3.5 rounded-xl border text-xs sm:text-sm font-bold text-center"></div>
@@ -81,19 +98,24 @@ export default function WorkshopView({
             <div id="pricing-services-list">
               {PRICING_SERVICES.map((s) => {
                 const checked = !!selectedServices[s.id];
-                if (checked) {
-                  // Add to total calculation handled in copyWhatsAppQuote
-                }
-                return React.createElement('button', {
-                  key: s.id,
-                  onClick: () => toggleService(s.id),
-                  className: `w-full text-left p-3 rounded-xl border flex items-center justify-between gap-2 transition ${
-                    checked ? 'bg-emerald-500/15 border-emerald-500/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                  }`,
-                }, React.createElement('div', { className: "flex items-center gap-2.5 min-w-0" },
-                  React.createElement('span', { className: checked ? '☑️' : '⬜' }),
-                  React.createElement('span', { className: "text-xs font-semibold truncate" }, s.names[lang])),
-                  React.createElement('span', { className: "text-xs font-mono-tech font-bold text-emerald-400 shrink-0" }, s.range)),
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => toggleService(s.id)}
+                    className={`w-full text-left p-3 rounded-xl border flex items-center justify-between gap-2 transition ${
+                      checked
+                        ? 'bg-emerald-500/15 border-emerald-500/50 text-white'
+                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span>{checked ? '☑️' : '⬜'}</span>
+                      <span className="text-xs font-semibold truncate">{s.names[lang]}</span>
+                    </div>
+                    <span className="text-xs font-mono-tech font-bold text-emerald-400 shrink-0">
+                      {s.range}
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -105,7 +127,7 @@ export default function WorkshopView({
                 {t('totalEst')}
               </span>
               <span id="quote-total-value" className="text-xl font-black font-mono-tech text-emerald-400">
-                R$ 0,00
+                R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
