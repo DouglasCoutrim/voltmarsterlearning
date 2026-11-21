@@ -1,0 +1,2512 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltMaster Academy — Manutenção de Baterias DJI Agras</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            volt: {
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html, body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
+    @keyframes kenburns {
+      0% { transform: scale(1) translate(0, 0); }
+      50% { transform: scale(1.07) translate(-1%, -1%); }
+      100% { transform: scale(1) translate(0, 0); }
+    }
+    .animate-kenburns { animation: kenburns 16s ease-in-out infinite; }
+    @keyframes ledBlink {
+      0%, 49% { opacity: 1; box-shadow: 0 0 14px #22c55e, 0 0 28px rgba(34,197,94,0.6); }
+      50%, 100% { opacity: 0.18; box-shadow: none; }
+    }
+    .led-blink { animation: ledBlink 0.7s infinite; }
+    .led-on { opacity: 1; box-shadow: 0 0 14px #22c55e, 0 0 24px rgba(34,197,94,0.5); }
+    .led-off { opacity: 0.18; box-shadow: none; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    @media print {
+      body * { visibility: hidden !important; }
+      #certificate-print-area, #certificate-print-area * { visibility: visible !important; }
+      #certificate-print-area {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        background: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#090d16] text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Dados de fotos embutidas na exportação autônoma -->
+  <script id="voltmaster-embedded-photos" type="application/json">{}</script>
+
+  <!-- Toast de Notificações (Substitui alert/confirm) -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-[92vw] sm:w-auto pointer-events-none"></div>
+
+  <!-- Modal Lightbox para Ampliar Fotos -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-sm items-center justify-center p-4">
+    <div class="relative max-w-4xl w-full bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+        <h3 id="lightbox-title" class="text-sm sm:text-base font-bold text-white truncate"></h3>
+        <button id="lightbox-close" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold">✕</button>
+      </div>
+      <div class="p-4 flex items-center justify-center bg-black/50 max-h-[75vh] overflow-auto">
+        <img id="lightbox-img" src="" alt="" class="max-w-full max-h-[68vh] rounded-xl object-contain" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação Customizado -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+      <h3 id="confirm-title" class="text-lg font-bold text-white mb-2"></h3>
+      <p id="confirm-message" class="text-sm text-slate-300 mb-6"></p>
+      <div class="flex justify-end gap-3">
+        <button id="confirm-cancel" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold"></button>
+        <button id="confirm-ok" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra Superior Fixa -->
+  <header class="sticky top-0 z-40 bg-[#0b1120]/95 backdrop-blur-md border-b border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Marca -->
+      <div class="flex items-center gap-3 min-w-0">
+        <div id="header-logo-box" class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 overflow-hidden shrink-0">
+          <svg class="w-6 h-6 text-slate-950" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-black tracking-tight text-base sm:text-lg text-white truncate">VOLTMASTER</span>
+            <span class="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">ACADEMY</span>
+          </div>
+          <p id="hdr-subtitle" class="text-[11px] sm:text-xs text-slate-400 truncate">DJI Agras T20P • T30 • T40 • T50</p>
+        </div>
+      </div>
+
+      <!-- Seletor de Idiomas (PT, ES, EN, FR, TR) + Progresso -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+        <div class="flex items-center bg-slate-900 border border-slate-700/80 rounded-xl p-1 gap-0.5" role="group" aria-label="Language selector">
+          <button onclick="setLanguage('pt')" data-lang-btn="pt" class="lang-btn px-2 py-1 rounded-lg text-xs font-bold transition">🇧🇷 PT</button>
+          <button onclick="setLanguage('es')" data-lang-btn="es" class="lang-btn px-2 py-1 rounded-lg text-xs font-bold transition">🇪🇸 ES</button>
+          <button onclick="setLanguage('en')" data-lang-btn="en" class="lang-btn px-2 py-1 rounded-lg text-xs font-bold transition">🇺🇸 EN</button>
+          <button onclick="setLanguage('fr')" data-lang-btn="fr" class="lang-btn px-2 py-1 rounded-lg text-xs font-bold transition">🇫🇷 FR</button>
+          <button onclick="setLanguage('tr')" data-lang-btn="tr" class="lang-btn px-2 py-1 rounded-lg text-xs font-bold transition">🇹🇷 TR</button>
+        </div>
+
+        <div class="hidden md:flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+          <div class="w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="hdr-progress-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <span id="hdr-progress-text" class="text-xs font-mono-tech text-emerald-400 font-bold">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navegação de Abas -->
+    <nav class="max-w-7xl mx-auto px-3 sm:px-6 pb-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button onclick="switchView('course')" data-nav="course" class="nav-tab shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2"></button>
+      <button onclick="switchView('photos')" data-nav="photos" class="nav-tab shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2"></button>
+      <button onclick="switchView('workshop')" data-nav="workshop" class="nav-tab shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2"></button>
+      <button onclick="switchView('certificate')" data-nav="certificate" class="nav-tab shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2"></button>
+    </nav>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
+
+    <!-- ==================== VIEW 1: CURSO INTERATIVO ==================== -->
+    <section id="view-course" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- Sidebar de Módulos -->
+        <aside class="lg:col-span-4 xl:col-span-3 order-2 lg:order-1">
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 lg:sticky lg:top-32">
+            <div class="flex items-center justify-between mb-3">
+              <h2 id="txt-modules-heading" class="text-xs font-extrabold uppercase tracking-wider text-slate-400"></h2>
+              <span id="sidebar-completed-badge" class="text-xs font-mono-tech text-emerald-400 font-bold">0/9</span>
+            </div>
+            <div id="module-list" class="space-y-1.5 max-h-[65vh] overflow-y-auto pr-1"></div>
+          </div>
+        </aside>
+
+        <!-- Área do Player + Laboratório -->
+        <div class="lg:col-span-8 xl:col-span-9 order-1 lg:order-2 space-y-5">
+
+          <!-- Cabeçalho da Aula -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-start justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span id="lesson-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"></span>
+                <span id="lesson-duration" class="text-xs text-slate-400 font-mono-tech"></span>
+              </div>
+              <h1 id="lesson-title" class="text-lg sm:text-2xl font-extrabold text-white leading-tight"></h1>
+              <p id="lesson-subtitle" class="text-xs sm:text-sm text-slate-400"></p>
+            </div>
+            <button id="btn-mark-complete" onclick="toggleCurrentModuleComplete()" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition border shrink-0"></button>
+          </div>
+
+          <!-- PLAYER INTERATIVO 16:9 -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+            <!-- Barra Superior do Player (Alternar Foto Real / SVG) -->
+            <div class="px-3 sm:px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <button id="btn-mode-photo" onclick="setPlayerVisualMode('photo')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition"></button>
+                <button id="btn-mode-svg" onclick="setPlayerVisualMode('svg')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition"></button>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="btn-quick-upload" onclick="triggerQuickPhotoUpload()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition"></button>
+                <input type="file" id="quick-photo-input" accept="image/*" class="hidden" />
+              </div>
+            </div>
+
+            <!-- Palco Visual 16:9 -->
+            <div class="relative aspect-video bg-gradient-to-br from-slate-950 via-[#0d1526] to-slate-950 overflow-hidden flex items-center justify-center">
+              <!-- Camada Foto Real -->
+              <div id="player-photo-layer" class="hidden absolute inset-0 w-full h-full">
+                <img id="player-real-img" src="" alt="" class="w-full h-full object-contain bg-black/70" />
+                <div class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-sm border border-emerald-500/40 text-[11px] font-bold text-emerald-300" id="player-photo-caption"></div>
+              </div>
+
+              <!-- Camada Diagrama SVG Animado -->
+              <div id="player-svg-layer" class="w-full h-full flex items-center justify-center p-4"></div>
+
+              <!-- Overlay de Legendas Sincronizadas -->
+              <div class="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-6 sm:right-6 pointer-events-none">
+                <div class="bg-black/80 backdrop-blur-md border border-slate-700/70 rounded-xl px-4 py-2.5 text-center shadow-xl">
+                  <p id="player-subtitle-text" class="text-xs sm:text-sm md:text-base text-slate-100 font-medium leading-snug"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controles de Reprodução -->
+            <div class="px-3 sm:px-4 py-3 bg-slate-900 border-t border-slate-800 space-y-2.5">
+              <!-- Barra de Progresso -->
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden cursor-pointer" id="player-seek-bar">
+                <div id="player-progress-fill" class="h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <button id="btn-play-pause" onclick="togglePlayLesson()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold transition flex items-center gap-1.5"></button>
+                  <button id="btn-stop-lesson" onclick="stopLesson()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">⏹</button>
+                  <button id="btn-toggle-voice" onclick="toggleVoiceNarration()" class="px-3 py-2 rounded-xl text-xs font-bold border transition"></button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="player-step-indicator" class="text-xs font-mono-tech text-slate-400">1/4</span>
+                  <button onclick="prevSlide()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">◀</button>
+                  <button onclick="nextSlide()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">▶</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Faixa de Componentes desta Aula -->
+          <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 id="txt-lesson-components" class="text-xs font-extrabold uppercase tracking-wider text-slate-400"></h3>
+              <button onclick="switchView('photos')" id="btn-open-studio-inline" class="text-xs font-bold text-emerald-400 hover:text-emerald-300"></button>
+            </div>
+            <div id="lesson-components-strip" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+          </div>
+
+          <!-- Resumo Técnico da Aula -->
+          <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5">
+            <h3 id="txt-tech-summary-title" class="text-sm font-extrabold uppercase tracking-wider text-emerald-400 mb-3"></h3>
+            <div id="lesson-tech-points" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm text-slate-300"></div>
+          </div>
+
+          <!-- LABORATÓRIO PRÁTICO INTERATIVO DO MÓDULO -->
+          <div class="bg-gradient-to-b from-slate-900 to-[#0d1526] border border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-xl">
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-4 pb-3 border-b border-slate-800">
+              <div>
+                <span id="lab-tag" class="text-[11px] font-bold uppercase tracking-wider text-emerald-400"></span>
+                <h3 id="lab-title" class="text-base sm:text-lg font-extrabold text-white"></h3>
+              </div>
+            </div>
+            <div id="lab-container"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: ESTÚDIO DE FOTOS REAIS ==================== -->
+    <section id="view-photos" class="hidden space-y-5">
+      <div class="bg-gradient-to-r from-slate-900 via-[#0f1c2e] to-slate-900 border border-emerald-500/30 rounded-2xl p-4 sm:p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-1.5">
+            <span id="photos-badge" class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"></span>
+            <h1 id="photos-title" class="text-xl sm:text-2xl font-black text-white"></h1>
+            <p id="photos-desc" class="text-xs sm:text-sm text-slate-300 max-w-2xl"></p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-export-html" onclick="exportStandaloneHTML()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition"></button>
+            <button id="btn-backup-json" onclick="exportPhotosJSON()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"></button>
+            <button id="btn-restore-json" onclick="document.getElementById('restore-json-input').click()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"></button>
+            <input type="file" id="restore-json-input" accept="application/json" class="hidden" />
+          </div>
+        </div>
+
+        <!-- Barra de Progresso de Fotos + Filtros -->
+        <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-40 h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="photos-progress-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <span id="photos-count-text" class="text-xs font-mono-tech text-emerald-400 font-bold">0 / 18</span>
+          </div>
+          <div id="photos-filter-bar" class="flex items-center gap-1.5 overflow-x-auto pb-1"></div>
+        </div>
+      </div>
+
+      <!-- Grid dos 18 Componentes -->
+      <div id="photos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ==================== VIEW 3: OFICINA (CHECKLIST + ORÇAMENTO + PEÇAS) ==================== -->
+    <section id="view-workshop" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Checklist de 8 Pontos -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 id="chk-title" class="text-lg font-extrabold text-white"></h2>
+              <p id="chk-subtitle" class="text-xs text-slate-400"></p>
+            </div>
+            <span id="chk-score" class="px-3 py-1 rounded-full text-xs font-mono-tech font-bold bg-slate-800 text-emerald-400">0/8</span>
+          </div>
+          <div id="checklist-items" class="space-y-2.5"></div>
+          <div id="chk-release-banner" class="mt-4 p-3.5 rounded-xl border text-xs sm:text-sm font-bold text-center"></div>
+        </div>
+
+        <!-- Calculadora de Orçamento para WhatsApp -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <h2 id="calc-title" class="text-lg font-extrabold text-white mb-1"></h2>
+            <p id="calc-subtitle" class="text-xs text-slate-400 mb-4"></p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label id="lbl-client-name" class="block text-xs font-semibold text-slate-400 mb-1"></label>
+                <input id="quote-client" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-emerald-500 outline-none" placeholder="Fazenda / Cliente" />
+              </div>
+              <div>
+                <label id="lbl-battery-model" class="block text-xs font-semibold text-slate-400 mb-1"></label>
+                <select id="quote-model" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-emerald-500 outline-none">
+                  <option value="DJI Agras T20P">DJI Agras T20P</option>
+                  <option value="DJI Agras T30">DJI Agras T30</option>
+                  <option value="DJI Agras T40" selected>DJI Agras T40</option>
+                  <option value="DJI Agras T50">DJI Agras T50</option>
+                </select>
+              </div>
+            </div>
+            <div id="pricing-services-list" class="space-y-2"></div>
+          </div>
+
+          <div class="mt-5 pt-4 border-t border-slate-800">
+            <div class="flex items-center justify-between mb-3">
+              <span id="lbl-total-est" class="text-sm font-bold text-slate-300"></span>
+              <span id="quote-total-value" class="text-xl font-black font-mono-tech text-emerald-400">R$ 0,00</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button id="btn-copy-quote" onclick="copyWhatsAppQuote()" class="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold transition"></button>
+              <button id="btn-reset-quote" onclick="resetQuote()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-bold transition"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Links de Referência de Peças e Suporte -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+        <h3 id="refs-title" class="text-base font-extrabold text-white mb-3"></h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <a href="https://apf-drones.com/product/dji-t40-battery-mainboard/" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 transition block">
+            <span class="text-emerald-400 font-bold block mb-1">BMS DB1560 (T40/T50) ↗</span>
+            <span class="text-slate-400">APF Drones — Placa-Mãe BMS</span>
+          </a>
+          <a href="https://rcdrone.top/products/src-rjx3901-t30-rjxhobby-1-pairs-3rd-gen-model-dji-agras-t30-t40-t50-battery-interface-connector-replacement" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 transition block">
+            <span class="text-emerald-400 font-bold block mb-1">Conector 10 Fendas ↗</span>
+            <span class="text-slate-400">RCDrone — Interface T30/T40/T50</span>
+          </a>
+          <a href="https://arbaccessories.in/24s-5a-int-automatic-equalizer-web-itm-0734" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 transition block">
+            <span class="text-emerald-400 font-bold block mb-1">Equalizadora 24S515A ↗</span>
+            <span class="text-slate-400">ARB — Balanceador Automático 24S</span>
+          </a>
+          <a href="https://goldrones.com.br/produto/ferro-de-solda-220v-350w-para-portas-de-bateria-de-drones-dji-alta-precisao-e-controle-de-temperatura/" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 transition block">
+            <span class="text-emerald-400 font-bold block mb-1">Banheira de Solda 350W ↗</span>
+            <span class="text-slate-400">Gol Drones — Cadinho de Estanho</span>
+          </a>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+          <span>VoltMaster Energia Agrícola • Douglas Coutrim Silva — Brasília/DF</span>
+          <span class="font-mono-tech text-emerald-400 font-bold">WhatsApp: (61) 9 8524-5726</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: CERTIFICADO ==================== -->
+    <section id="view-certificate" class="hidden space-y-5">
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-end justify-between gap-4">
+        <div class="flex-1 min-w-[220px]">
+          <label id="lbl-cert-student" class="block text-xs font-bold text-slate-400 mb-1.5"></label>
+          <input id="cert-student-name" type="text" value="Douglas Coutrim Silva" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-emerald-500 outline-none" />
+        </div>
+        <button id="btn-print-cert" onclick="window.print()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 transition"></button>
+      </div>
+
+      <!-- Área Imprimível do Certificado -->
+      <div id="certificate-print-area" class="bg-gradient-to-br from-[#0b1324] via-[#0f172a] to-[#071510] border-2 border-emerald-500/50 rounded-3xl p-6 sm:p-12 text-center shadow-2xl relative overflow-hidden">
+        <div class="absolute inset-3 border border-emerald-500/20 rounded-2xl pointer-events-none"></div>
+        <div class="relative z-10 max-w-3xl mx-auto space-y-5">
+          <div id="cert-logo-wrap" class="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center overflow-hidden">
+            <svg class="w-9 h-9 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          </div>
+          <p id="cert-eyebrow" class="text-xs font-black tracking-[0.25em] uppercase text-emerald-400"></p>
+          <h2 id="cert-heading" class="text-2xl sm:text-4xl font-black text-white tracking-tight"></h2>
+          <p id="cert-intro" class="text-xs sm:text-sm text-slate-300"></p>
+          <div id="cert-display-name" class="text-2xl sm:text-4xl font-black text-emerald-400 py-2 border-b border-emerald-500/30 inline-block px-6">Douglas Coutrim Silva</div>
+          <p id="cert-body" class="text-xs sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto"></p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-800/80 text-xs">
+            <div>
+              <p class="font-bold text-white">Douglas Coutrim Silva</p>
+              <p id="cert-role-instructor" class="text-slate-400"></p>
+            </div>
+            <div>
+              <p id="cert-date-val" class="font-mono-tech font-bold text-emerald-400"></p>
+              <p id="cert-role-date" class="text-slate-400"></p>
+            </div>
+            <div>
+              <p class="font-bold text-white">VoltMaster Energia Agrícola</p>
+              <p class="text-slate-400">Brasília - DF • (61) 9 8524-5726</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /**************************************************************************
+     * 1. SISTEMA MULTILÍNGUE (PT, ES, EN, FR, TR)
+     **************************************************************************/
+    const LANG_META = {
+      pt: { code: 'pt', htmlLang: 'pt-BR', speech: 'pt-BR', name: 'Português' },
+      es: { code: 'es', htmlLang: 'es-ES', speech: 'es-ES', name: 'Español' },
+      en: { code: 'en', htmlLang: 'en-US', speech: 'en-US', name: 'English' },
+      fr: { code: 'fr', htmlLang: 'fr-FR', speech: 'fr-FR', name: 'Français' },
+      tr: { code: 'tr', htmlLang: 'tr-TR', speech: 'tr-TR', name: 'Türkçe' }
+    };
+
+    const UI_STRINGS = {
+      pt: {
+        navCourse: '🎓 Curso & Labs',
+        navPhotos: '📸 Minhas Fotos (18)',
+        navWorkshop: '🛠️ Oficina & Orçamento',
+        navCert: '🏆 Certificado',
+        modulesHeading: 'Módulos do Curso',
+        markComplete: '✓ Concluir Aula',
+        completedBtn: '✓ Aula Concluída',
+        modePhoto: '📸 Foto Real',
+        modeSvg: '📐 Diagrama SVG',
+        quickUpload: '⚡ Enviar Foto Agora',
+        play: '▶ Iniciar Aula',
+        pause: '⏸ Pausar',
+        voiceOn: '🔊 Voz: LIGADA',
+        voiceOff: '🔇 Voz: MUDA',
+        lessonComponents: 'Componentes desta Aula',
+        openStudio: 'Abrir Estúdio Completo →',
+        techSummary: 'Parâmetros Técnicos de Bancada',
+        labTag: 'LABORATÓRIO INTERATIVO DE BANCADA',
+        photosBadge: 'ESTÚDIO DE IMAGENS REAIS • 18 COMPONENTES',
+        photosTitle: 'Suba suas Fotos Reais de Bancada',
+        photosDesc: 'Clique ou arraste a foto real de cada componente. As imagens aparecem automaticamente dentro do player de cada aula e podem ser exportadas em um arquivo HTML definitivo.',
+        exportHtml: '💾 Exportar Curso com Fotos (.html)',
+        backupJson: '⬇ Backup (.json)',
+        restoreJson: '⬆ Restaurar (.json)',
+        filterAll: 'Todos (18)',
+        uploadBtn: '📤 Enviar Foto',
+        replaceBtn: '🔄 Trocar',
+        removeBtn: '🗑️ Remover',
+        zoomBtn: '🔍 Ampliar',
+        noPhotoYet: 'Nenhuma foto enviada — clique ou arraste aqui',
+        chkTitle: 'Checklist de Liberação de Voo (8 Testes)',
+        chkSubtitle: 'Nenhuma bateria sai da bancada sem aprovação total.',
+        chkPending: 'Aguardando validação dos 8 critérios de segurança.',
+        chkApproved: '✅ BATERIA APROVADA E LIBERADA PARA VOO COM GARANTIA!',
+        calcTitle: 'Calculadora de Orçamento (WhatsApp)',
+        calcSubtitle: 'Selecione os serviços executados para gerar o orçamento.',
+        clientName: 'Cliente / Fazenda',
+        batteryModel: 'Modelo da Bateria',
+        totalEst: 'Total Estimado:',
+        copyQuote: '📋 Copiar Orçamento para WhatsApp',
+        resetQuote: 'Limpar',
+        refsTitle: 'Referências Reais de Peças e Equipamentos',
+        certStudentLbl: 'Nome do Técnico no Certificado',
+        printCert: '🖨️ Imprimir / Salvar PDF',
+        certEyebrow: 'CERTIFICADO DE CONCLUSÃO TÉCNICA',
+        certHeading: 'Mestria em Manutenção de Baterias DJI Agras',
+        certIntro: 'Certificamos que o profissional',
+        certBody: 'concluiu o treinamento prático completo de diagnóstico, equalização 14S, eletrônica BMS, troca de conectores em banheira de estanho, desbloqueio de MCU e validação de voo para baterias DJI Agras T20P, T30, T40 e T50.',
+        certInstructor: 'Instrutor Chefe • VoltMaster',
+        certDateRole: 'Data de Emissão',
+        toastPhotoSaved: 'Foto salva e vinculada à aula!',
+        toastPhotoRemoved: 'Foto removida.',
+        toastExported: 'Curso exportado com suas fotos embutidas!',
+        toastCopied: 'Orçamento copiado para a área de transferência!',
+        toastLang: 'Idioma alterado para Português (BR)',
+        confirmRemoveTitle: 'Remover foto?',
+        confirmRemoveMsg: 'A aula voltará a exibir o diagrama técnico SVG até você enviar outra imagem.',
+        cancel: 'Cancelar',
+        confirm: 'Remover',
+        correct: '✅ Correto!',
+        wrong: '❌ Incorreto. Tente novamente!',
+        reset: 'Reiniciar'
+      },
+      es: {
+        navCourse: '🎓 Curso y Labs',
+        navPhotos: '📸 Mis Fotos (18)',
+        navWorkshop: '🛠️ Taller y Presupuesto',
+        navCert: '🏆 Certificado',
+        modulesHeading: 'Módulos del Curso',
+        markComplete: '✓ Completar Clase',
+        completedBtn: '✓ Clase Completada',
+        modePhoto: '📸 Foto Real',
+        modeSvg: '📐 Diagrama SVG',
+        quickUpload: '⚡ Subir Foto Ahora',
+        play: '▶ Iniciar Clase',
+        pause: '⏸ Pausar',
+        voiceOn: '🔊 Voz: ACTIVA',
+        voiceOff: '🔇 Voz: SILENCIO',
+        lessonComponents: 'Componentes de esta Clase',
+        openStudio: 'Abrir Estudio Completo →',
+        techSummary: 'Parámetros Técnicos de Banco',
+        labTag: 'LABORATORIO INTERACTIVO DE BANCO',
+        photosBadge: 'ESTUDIO DE IMÁGENES REALES • 18 COMPONENTES',
+        photosTitle: 'Sube tus Fotos Reales de Taller',
+        photosDesc: 'Haz clic o arrastra la foto real de cada componente. Las imágenes aparecerán automáticamente en el reproductor de cada clase y podrás exportar un archivo HTML autónomo.',
+        exportHtml: '💾 Exportar Curso con Fotos (.html)',
+        backupJson: '⬇ Respaldo (.json)',
+        restoreJson: '⬆ Restaurar (.json)',
+        filterAll: 'Todos (18)',
+        uploadBtn: '📤 Subir Foto',
+        replaceBtn: '🔄 Cambiar',
+        removeBtn: '🗑️ Eliminar',
+        zoomBtn: '🔍 Ampliar',
+        noPhotoYet: 'Sin foto aún — haz clic o arrastra aquí',
+        chkTitle: 'Lista de Liberación de Vuelo (8 Pruebas)',
+        chkSubtitle: 'Ninguna batería sale del banco sin aprobación total.',
+        chkPending: 'Esperando validación de los 8 criterios de seguridad.',
+        chkApproved: '✅ ¡BATERÍA APROBADA Y LIBERADA PARA VUELO CON GARANTÍA!',
+        calcTitle: 'Calculadora de Presupuesto (WhatsApp)',
+        calcSubtitle: 'Selecciona los servicios para generar el presupuesto.',
+        clientName: 'Cliente / Finca',
+        batteryModel: 'Modelo de Batería',
+        totalEst: 'Total Estimado:',
+        copyQuote: '📋 Copiar Presupuesto para WhatsApp',
+        resetQuote: 'Limpiar',
+        refsTitle: 'Referencias Reales de Repuestos y Equipos',
+        certStudentLbl: 'Nombre del Técnico en el Certificado',
+        printCert: '🖨️ Imprimir / Guardar PDF',
+        certEyebrow: 'CERTIFICADO DE FINALIZACIÓN TÉCNICA',
+        certHeading: 'Maestría en Mantenimiento de Baterías DJI Agras',
+        certIntro: 'Certificamos que el profesional',
+        certBody: 'ha completado la formación práctica integral en diagnóstico, ecualización 14S, electrónica BMS, cambio de conectores en baño de estaño, desbloqueo de MCU y validación de vuelo para baterías DJI Agras T20P, T30, T40 y T50.',
+        certInstructor: 'Instructor Principal • VoltMaster',
+        certDateRole: 'Fecha de Emisión',
+        toastPhotoSaved: '¡Foto guardada y vinculada a la clase!',
+        toastPhotoRemoved: 'Foto eliminada.',
+        toastExported: '¡Curso exportado con tus fotos incrustadas!',
+        toastCopied: '¡Presupuesto copiado al portapapeles!',
+        toastLang: 'Idioma cambiado a Español',
+        confirmRemoveTitle: '¿Eliminar foto?',
+        confirmRemoveMsg: 'La clase volverá a mostrar el diagrama SVG hasta que subas otra imagen.',
+        cancel: 'Cancelar',
+        confirm: 'Eliminar',
+        correct: '✅ ¡Correcto!',
+        wrong: '❌ Incorrecto. ¡Intenta de nuevo!',
+        reset: 'Reiniciar'
+      },
+      en: {
+        navCourse: '🎓 Course & Labs',
+        navPhotos: '📸 My Photos (18)',
+        navWorkshop: '🛠️ Workshop & Quote',
+        navCert: '🏆 Certificate',
+        modulesHeading: 'Course Modules',
+        markComplete: '✓ Complete Lesson',
+        completedBtn: '✓ Completed',
+        modePhoto: '📸 Real Photo',
+        modeSvg: '📐 SVG Diagram',
+        quickUpload: '⚡ Upload Photo Now',
+        play: '▶ Play Lesson',
+        pause: '⏸ Pause',
+        voiceOn: '🔊 Voice: ON',
+        voiceOff: '🔇 Voice: MUTE',
+        lessonComponents: 'Components in this Lesson',
+        openStudio: 'Open Full Studio →',
+        techSummary: 'Workbench Technical Parameters',
+        labTag: 'INTERACTIVE WORKBENCH LAB',
+        photosBadge: 'REAL PHOTO STUDIO • 18 COMPONENTS',
+        photosTitle: 'Upload Your Real Workbench Photos',
+        photosDesc: 'Click or drag & drop a real photo for each component. Images appear live inside every lesson player and can be exported into a standalone HTML file.',
+        exportHtml: '💾 Export Course with Photos (.html)',
+        backupJson: '⬇ Backup (.json)',
+        restoreJson: '⬆ Restore (.json)',
+        filterAll: 'All (18)',
+        uploadBtn: '📤 Upload Photo',
+        replaceBtn: '🔄 Replace',
+        removeBtn: '🗑️ Remove',
+        zoomBtn: '🔍 Zoom',
+        noPhotoYet: 'No photo uploaded — click or drag here',
+        chkTitle: 'Flight Release Checklist (8 Tests)',
+        chkSubtitle: 'No battery leaves the bench without full validation.',
+        chkPending: 'Waiting for all 8 safety criteria to be validated.',
+        chkApproved: '✅ BATTERY APPROVED & CLEARED FOR FLIGHT!',
+        calcTitle: 'Service Quote Calculator (WhatsApp)',
+        calcSubtitle: 'Select performed services to generate a ready-to-send quote.',
+        clientName: 'Client / Farm',
+        batteryModel: 'Battery Model',
+        totalEst: 'Estimated Total:',
+        copyQuote: '📋 Copy Quote for WhatsApp',
+        resetQuote: 'Clear',
+        refsTitle: 'Real Parts & Equipment References',
+        certStudentLbl: 'Technician Name on Certificate',
+        printCert: '🖨️ Print / Save PDF',
+        certEyebrow: 'TECHNICAL COMPLETION CERTIFICATE',
+        certHeading: 'DJI Agras Battery Maintenance Mastery',
+        certIntro: 'This certifies that',
+        certBody: 'has completed the hands-on training covering 14S diagnostics, active equalization, BMS electronics, solder pot connector replacement, MCU unlocking, and flight validation for DJI Agras T20P, T30, T40, and T50 batteries.',
+        certInstructor: 'Lead Instructor • VoltMaster',
+        certDateRole: 'Issue Date',
+        toastPhotoSaved: 'Photo saved and linked to lesson!',
+        toastPhotoRemoved: 'Photo removed.',
+        toastExported: 'Standalone course exported with your photos!',
+        toastCopied: 'Quote copied to clipboard!',
+        toastLang: 'Language switched to English',
+        confirmRemoveTitle: 'Remove photo?',
+        confirmRemoveMsg: 'The lesson will display the SVG diagram until you upload another photo.',
+        cancel: 'Cancel',
+        confirm: 'Remove',
+        correct: '✅ Correct!',
+        wrong: '❌ Incorrect. Try again!',
+        reset: 'Reset'
+      },
+      fr: {
+        navCourse: '🎓 Cours & Labs',
+        navPhotos: '📸 Mes Photos (18)',
+        navWorkshop: '🛠️ Atelier & Devis',
+        navCert: '🏆 Certificat',
+        modulesHeading: 'Modules du Cours',
+        markComplete: '✓ Terminer la Leçon',
+        completedBtn: '✓ Leçon Terminée',
+        modePhoto: '📸 Photo Réelle',
+        modeSvg: '📐 Schéma SVG',
+        quickUpload: '⚡ Envoyer une Photo',
+        play: '▶ Lancer la Leçon',
+        pause: '⏸ Pause',
+        voiceOn: '🔊 Voix : ACTIVE',
+        voiceOff: '🔇 Voix : MUET',
+        lessonComponents: 'Composants de cette Leçon',
+        openStudio: 'Ouvrir le Studio Complet →',
+        techSummary: 'Paramètres Techniques d’Atelier',
+        labTag: 'LABORATOIRE INTERACTIF D’ATELIER',
+        photosBadge: 'STUDIO PHOTOS RÉELLES • 18 COMPOSANTS',
+        photosTitle: 'Importez vos Photos Réelles d’Atelier',
+        photosDesc: 'Cliquez ou glissez la photo réelle de chaque composant. Les images s’affichent directement dans le lecteur de chaque cours et peuvent être exportées en fichier HTML autonome.',
+        exportHtml: '💾 Exporter le Cours avec Photos (.html)',
+        backupJson: '⬇ Sauvegarde (.json)',
+        restoreJson: '⬆ Restaurer (.json)',
+        filterAll: 'Tous (18)',
+        uploadBtn: '📤 Envoyer',
+        replaceBtn: '🔄 Remplacer',
+        removeBtn: '🗑️ Supprimer',
+        zoomBtn: '🔍 Agrandir',
+        noPhotoYet: 'Aucune photo — cliquez ou glissez ici',
+        chkTitle: 'Checklist de Libération de Vol (8 Tests)',
+        chkSubtitle: 'Aucune batterie ne quitte l’atelier sans validation complète.',
+        chkPending: 'En attente de validation des 8 critères de sécurité.',
+        chkApproved: '✅ BATTERIE APPROUVÉE ET VALIDÉE POUR LE VOL !',
+        calcTitle: 'Calculateur de Devis (WhatsApp)',
+        calcSubtitle: 'Sélectionnez les interventions pour générer le devis.',
+        clientName: 'Client / Exploitation',
+        batteryModel: 'Modèle de Batterie',
+        totalEst: 'Total Estimé :',
+        copyQuote: '📋 Copier le Devis pour WhatsApp',
+        resetQuote: 'Effacer',
+        refsTitle: 'Références Réelles de Pièces et Équipements',
+        certStudentLbl: 'Nom du Technicien sur le Certificat',
+        printCert: '🖨️ Imprimer / PDF',
+        certEyebrow: 'CERTIFICAT DE RÉUSSITE TECHNIQUE',
+        certHeading: 'Maîtrise de la Maintenance des Batteries DJI Agras',
+        certIntro: 'Nous certifions que',
+        certBody: 'a suivi avec succès la formation pratique complète en diagnostic 14S, équilibrage actif, électronique BMS, remplacement de connecteur au bain d’étain, déblocage MCU et validation de vol pour batteries DJI Agras T20P, T30, T40 et T50.',
+        certInstructor: 'Instructeur Principal • VoltMaster',
+        certDateRole: 'Date d’Émission',
+        toastPhotoSaved: 'Photo enregistrée et liée au cours !',
+        toastPhotoRemoved: 'Photo supprimée.',
+        toastExported: 'Cours exporté avec vos photos intégrées !',
+        toastCopied: 'Devis copié dans le presse-papiers !',
+        toastLang: 'Langue changée en Français',
+        confirmRemoveTitle: 'Supprimer la photo ?',
+        confirmRemoveMsg: 'La leçon affichera le schéma SVG jusqu’à l’envoi d’une nouvelle image.',
+        cancel: 'Annuler',
+        confirm: 'Supprimer',
+        correct: '✅ Correct !',
+        wrong: '❌ Incorrect. Réessayez !',
+        reset: 'Réinitialiser'
+      },
+      tr: {
+        navCourse: '🎓 Kurs & Lab',
+        navPhotos: '📸 Fotoğraflarım (18)',
+        navWorkshop: '🛠️ Atölye & Teklif',
+        navCert: '🏆 Sertifika',
+        modulesHeading: 'Kurs Modülleri',
+        markComplete: '✓ Dersi Tamamla',
+        completedBtn: '✓ Tamamlandı',
+        modePhoto: '📸 Gerçek Fotoğraf',
+        modeSvg: '📐 SVG Şema',
+        quickUpload: '⚡ Şimdi Fotoğraf Yükle',
+        play: '▶ Dersi Başlat',
+        pause: '⏸ Duraklat',
+        voiceOn: '🔊 Ses: AÇIK',
+        voiceOff: '🔇 Ses: KAPALI',
+        lessonComponents: 'Bu Dersteki Bileşenler',
+        openStudio: 'Tam Stüdyoyu Aç →',
+        techSummary: 'Tezgah Teknik Parametreleri',
+        labTag: 'ETKİLEŞİMLİ TEZGAH LABORATUVARI',
+        photosBadge: 'GERÇEK FOTOĞRAF STÜDYOSU • 18 BİLEŞEN',
+        photosTitle: 'Gerçek Tezgah Fotoğraflarınızı Yükleyin',
+        photosDesc: 'Her bileşenin gerçek fotoğrafını tıklayın veya sürükleyip bırakın. Görseller her ders oynatıcısında otomatik görünür ve tek bir HTML dosyası olarak dışa aktarılabilir.',
+        exportHtml: '💾 Fotoğraflı Kursu Dışa Aktar (.html)',
+        backupJson: '⬇ Yedekle (.json)',
+        restoreJson: '⬆ Geri Yükle (.json)',
+        filterAll: 'Tümü (18)',
+        uploadBtn: '📤 Yükle',
+        replaceBtn: '🔄 Değiştir',
+        removeBtn: '🗑️ Sil',
+        zoomBtn: '🔍 Büyüt',
+        noPhotoYet: 'Fotoğraf yok — tıklayın veya sürükleyin',
+        chkTitle: 'Uçuş Onay Kontrol Listesi (8 Test)',
+        chkSubtitle: 'Tam onay olmadan hiçbir batarya tezgahtan çıkmaz.',
+        chkPending: '8 güvenlik kriterinin onaylanması bekleniyor.',
+        chkApproved: '✅ BATARYA ONAYLANDI VE UÇUŞA HAZIR!',
+        calcTitle: 'Servis Teklif Hesaplayıcı (WhatsApp)',
+        calcSubtitle: 'Teklif oluşturmak için yapılan işlemleri seçin.',
+        clientName: 'Müşteri / Çiftlik',
+        batteryModel: 'Batarya Modeli',
+        totalEst: 'Tahmini Toplam:',
+        copyQuote: '📋 WhatsApp İçin Teklifi Kopyala',
+        resetQuote: 'Temizle',
+        refsTitle: 'Gerçek Parça ve Ekipman Referansları',
+        certStudentLbl: 'Sertifikadaki Teknisyen Adı',
+        printCert: '🖨️ Yazdır / PDF Kaydet',
+        certEyebrow: 'TEKNİK TAMAMLAMA SERTİFİKASI',
+        certHeading: 'DJI Agras Batarya Bakım Uzmanlığı',
+        certIntro: 'Bu belge, aşağıda adı geçen teknisyenin',
+        certBody: 'DJI Agras T20P, T30, T40 ve T50 bataryaları için 14S arıza tespiti, aktif dengeleme, BMS elektroniği, lehim potası ile konnektör değişimi, MCU kilit açma ve uçuş doğrulama eğitimini başarıyla tamamladığını belgeler.',
+        certInstructor: 'Baş Eğitmen • VoltMaster',
+        certDateRole: 'Düzenleme Tarihi',
+        toastPhotoSaved: 'Fotoğraf kaydedildi ve derse bağlandı!',
+        toastPhotoRemoved: 'Fotoğraf silindi.',
+        toastExported: 'Kurs fotoğraflarınızla birlikte dışa aktarıldı!',
+        toastCopied: 'Teklif panoya kopyalandı!',
+        toastLang: 'Dil Türkçe olarak değiştirildi',
+        confirmRemoveTitle: 'Fotoğraf silinsin mi?',
+        confirmRemoveMsg: 'Yeni bir görsel yükleyene kadar derste SVG şema gösterilecektir.',
+        cancel: 'İptal',
+        confirm: 'Sil',
+        correct: '✅ Doğru!',
+        wrong: '❌ Yanlış. Tekrar deneyin!',
+        reset: 'Sıfırla'
+      }
+    };
+
+    /**************************************************************************
+     * 2. CATÁLOGO DOS 18 COMPONENTES PARA FOTOS REAIS
+     **************************************************************************/
+    const PHOTO_COMPONENTS = [
+      { id: 'c01', num: '01', mod: 0, labels: { pt: 'Logo Oficial VoltMaster', es: 'Logo Oficial VoltMaster', en: 'Official VoltMaster Logo', fr: 'Logo Officiel VoltMaster', tr: 'Resmi VoltMaster Logosu' } },
+      { id: 'c02', num: '02', mod: 0, labels: { pt: 'Bateria DJI Agras Completa (T40/T50)', es: 'Batería DJI Agras Completa (T40/T50)', en: 'Complete DJI Agras Battery (T40/T50)', fr: 'Batterie DJI Agras Complète (T40/T50)', tr: 'Komple DJI Agras Batarya (T40/T50)' } },
+      { id: 'c03', num: '03', mod: 0, labels: { pt: 'Terminais BAT+ / BAT- e Bordas GND', es: 'Terminales BAT+ / BAT- y Bordes GND', en: 'BAT+ / BAT- Terminals & GND Edges', fr: 'Bornes BAT+ / BAT- et Bords GND', tr: 'BAT+ / BAT- Terminalleri ve GND Kenarları' } },
+      { id: 'c04', num: '04', mod: 1, labels: { pt: 'Conector Principal de 10 Fendas (Ouro)', es: 'Conector Principal de 10 Ranuras (Oro)', en: '10-Slot Main Gold-Plated Connector', fr: 'Connecteur Principal 10 Fentes (Or)', tr: '10 Yuvalı Altın Ana Konnektör' } },
+      { id: 'c05', num: '05', mod: 1, labels: { pt: 'Painel de 4 LEDs e Botão Power', es: 'Panel de 4 LEDs y Botón Power', en: '4-LED Panel & Power Button', fr: 'Panneau 4 LEDs et Bouton Power', tr: '4 LED Paneli ve Güç Düğmesi' } },
+      { id: 'c06', num: '06', mod: 1, labels: { pt: 'Fonte de Bancada Ajustável (54V / 2A)', es: 'Fuente de Banco Ajustable (54V / 2A)', en: 'Adjustable Bench PSU (54V / 2A)', fr: 'Alimentation de Labo (54V / 2A)', tr: 'Ayarlanabilir Güç Kaynağı (54V / 2A)' } },
+      { id: 'c07', num: '07', mod: 2, labels: { pt: 'Placa Adaptadora de Balanceamento (B- a B14)', es: 'Placa Adaptadora de Balanceo (B- a B14)', en: 'Balance Adapter Board (B- to B14)', fr: 'Carte Adaptatrice Équilibrage (B- à B14)', tr: 'Dengeleme Adaptör Kartı (B- - B14)' } },
+      { id: 'c08', num: '08', mod: 2, labels: { pt: 'Placa Lateral das Células e Fusíveis SMD', es: 'Placa Lateral de Celdas y Fusibles SMD', en: 'Cell Side Board & SMD Fuses', fr: 'Carte Latérale Cellules & Fusibles SMD', tr: 'Hücre Yan Kartı ve SMD Sigortalar' } },
+      { id: 'c09', num: '09', mod: 3, labels: { pt: 'Máquina Equalizadora 24S515A', es: 'Máquina Ecualizadora 24S515A', en: '24S515A Active Equalizer Machine', fr: 'Équilibreuse Active 24S515A', tr: '24S515A Aktif Dengeleyici Makine' } },
+      { id: 'c10', num: '10', mod: 3, labels: { pt: 'Módulo de Carga de Célula Unitária', es: 'Módulo de Carga de Celda Unitaria', en: 'Single-Cell Recovery Charger Module', fr: 'Module Chargeur Cellule Unitaire', tr: 'Tek Hücre Şarj Modülü' } },
+      { id: 'c11', num: '11', mod: 4, labels: { pt: 'Chicote Térmico NTC (Conector 6)', es: 'Arnés Térmico NTC (Conector 6)', en: 'NTC Thermal Harness (Connector 6)', fr: 'Faisceau Thermique NTC (Connecteur 6)', tr: 'NTC Sıcaklık Kablosu (Konnektör 6)' } },
+      { id: 'c12', num: '12', mod: 4, labels: { pt: 'Chip de Ciclo / Certificação (4 Vias)', es: 'Chip de Ciclo / Certificación (4 Vías)', en: 'Cycle / Authentication Chip (4 Wires)', fr: 'Puce de Cycle / Certification (4 Fils)', tr: 'Döngü / Doğrulama Çipi (4 Kablo)' } },
+      { id: 'c13', num: '13', mod: 4, labels: { pt: 'Pads VCC_A, SDA_A, SCL_A e 485A/485B', es: 'Pads VCC_A, SDA_A, SCL_A y 485A/485B', en: 'VCC_A, SDA_A, SCL_A & 485A/485B Pads', fr: 'Points VCC_A, SDA_A, SCL_A et 485A/485B', tr: 'VCC_A, SDA_A, SCL_A ve 485A/485B Pedleri' } },
+      { id: 'c14', num: '14', mod: 5, labels: { pt: 'Placa-Mãe BMS Completa (MOSFETs + MEGA 300A)', es: 'Placa Madre BMS Completa (MOSFETs + MEGA 300A)', en: 'Full BMS Mainboard (MOSFETs + MEGA 300A)', fr: 'Carte Mère BMS Complète (MOSFETs + MEGA 300A)', tr: 'Tam BMS Anakart (MOSFET + MEGA 300A)' } },
+      { id: 'c15', num: '15', mod: 5, labels: { pt: 'Banco de Capacitores Cerâmicos + MCU 0 Ciclos', es: 'Banco de Capacitores Cerámicos + MCU 0 Ciclos', en: 'Ceramic Capacitor Bank + 0-Cycle MCU', fr: 'Banque Condensateurs Céramiques + MCU 0 Cycle', tr: 'Seramik Kondansatör + 0 Döngü MCU' } },
+      { id: 'c16', num: '16', mod: 5, labels: { pt: 'Adaptação Placa T40 para T50 (3 Conectores)', es: 'Adaptación Placa T40 a T50 (3 Conectores)', en: 'T40 to T50 Board Adaptation (3 Connectors)', fr: 'Adaptation Carte T40 vers T50 (3 Connecteurs)', tr: 'T40’tan T50’ye Kart Uyarlaması (3 Konnektör)' } },
+      { id: 'c17', num: '17', mod: 6, labels: { pt: 'Banheira de Estanho / Cadinho (280°C)', es: 'Baño de Estaño / Crisol (280°C)', en: 'Solder Pot / Tin Bath (280°C)', fr: 'Bain d’Étain / Creuset (280°C)', tr: 'Lehim Potası (280°C)' } },
+      { id: 'c18', num: '18', mod: 7, labels: { pt: 'Descarregador XH-M609 + Relé SSR-40DD', es: 'Descargador XH-M609 + Relé SSR-40DD', en: 'XH-M609 Discharger + SSR-40DD Relay', fr: 'Déchargeur XH-M609 + Relais SSR-40DD', tr: 'XH-M609 Deşarj Cihazı + SSR-40DD Röle' } }
+    ];
+
+    /**************************************************************************
+     * 3. CONTEÚDO DOS 9 MÓDULOS EM 5 IDIOMAS
+     **************************************************************************/
+    const MODULES = [
+      {
+        id: 0,
+        badge: 'ETAPA 0',
+        duration: '12 min',
+        primaryPhoto: 'c02',
+        photos: ['c01', 'c02', 'c03'],
+        title: {
+          pt: 'Fundamentos 14S e Protocolos de Segurança',
+          es: 'Fundamentos 14S y Protocolos de Seguridad',
+          en: '14S Fundamentals & Critical Safety Protocols',
+          fr: 'Fondamentaux 14S et Protocoles de Sécurité',
+          tr: '14S Temelleri ve Kritik Güvenlik Protokolleri'
+        },
+        subtitle: {
+          pt: 'Arquitetura 14S, bordas aterradas (GND), regra dos 5 toques e ordem estrita de desconexão.',
+          es: 'Arquitectura 14S, bordes a tierra (GND), regla de 5 toques y orden estricto de desconexión.',
+          en: '14S architecture, grounded edges (GND), 5-press power rule, and strict disconnect order.',
+          fr: 'Architecture 14S, bords à la masse (GND), règle des 5 appuis et ordre strict de déconnexion.',
+          tr: '14S mimarisi, topraklı kenarlar (GND), 5 basma kuralı ve kesin sökme sırası.'
+        },
+        slides: {
+          pt: [
+            'Arquitetura 14S: 14 células LiPo em série. Carga plena 58,80V (4,20V/célula), Storage 51,8V–53,2V e corte de software em 52,00V.',
+            'ALERTA 1 — Bordas Metálicas GND: toda borda e furo da placa BMS é aterrada. Encostar BAT+ gera curto acima de 300A!',
+            'ALERTA 2 — Regra dos 5 Toques: nunca aperte o botão Power mais de 5 vezes com a bateria em falha, ou o MCU trava os 4 LEDs.',
+            'Sequência obrigatória: Desmontar BAT- → BAT+ → Cabos 4, 5, 6. Remontar Cabos 6 e 5 → PAUSA DE 5s → Cabo 4 → BAT+ → BAT-.'
+          ],
+          es: [
+            'Arquitectura 14S: 14 celdas LiPo en serie. Carga plena 58,80V (4,20V/celda), Storage 51,8V–53,2V y límite de software en 52,00V.',
+            'ALERTA 1 — Bordes Metálicos GND: todos los bordes y orificios de la BMS van a tierra. ¡Tocar BAT+ genera un corto >300A!',
+            'ALERTA 2 — Regla de 5 Toques: nunca pulses Power más de 5 veces con error o el MCU bloqueará los 4 LEDs.',
+            'Secuencia obligatoria: Desmontar BAT- → BAT+ → Cables 4, 5, 6. Montar Cables 6 y 5 → PAUSA 5s → Cable 4 → BAT+ → BAT-.'
+          ],
+          en: [
+            '14S Architecture: 14 LiPo cells in series. Full charge 58.80V (4.20V/cell), Storage 51.8V–53.2V, software minimum 52.00V.',
+            'ALERT 1 — Grounded Edges (GND): all BMS perimeter edges and screw holes are GND. Touching BAT+ causes a >300A short!',
+            'ALERT 2 — 5-Press Rule: never press Power more than 5 times in a row during a fault, or the MCU locks with 4 blinking LEDs.',
+            'Strict sequence: Disconnect BAT- → BAT+ → Harnesses 4, 5, 6. Reconnect 6 & 5 → WAIT 5 SECONDS → Harness 4 → BAT+ → BAT-.'
+          ],
+          fr: [
+            'Architecture 14S : 14 cellules LiPo en série. Pleine charge 58,80V (4,20V/cellule), Storage 51,8V–53,2V, seuil logiciel 52,00V.',
+            'ALERTE 1 — Bords GND : les bords métalliques de la BMS sont à la masse. Toucher BAT+ crée un court-circuit >300A !',
+            'ALERTE 2 — Règle des 5 Appuis : n’appuyez jamais plus de 5 fois sur Power en cas d’erreur, sinon le MCU verrouille les 4 LEDs.',
+            'Séquence stricte : Démonter BAT- → BAT+ → Câbles 4, 5, 6. Remonter Câbles 6 et 5 → PAUSE 5s → Câble 4 → BAT+ → BAT-.'
+          ],
+          tr: [
+            '14S Mimarisi: Seri bağlı 14 LiPo hücre. Tam şarj 58,80V (4,20V/hücre), Depolama 51,8V–53,2V, yazılım sınırı 52,00V.',
+            'UYARI 1 — Topraklı Kenarlar (GND): BMS kenarları şaseye bağlıdır. BAT+ teması 300A üzeri kısa devre yaratır!',
+            'UYARI 2 — 5 Basma Kuralı: Hata varken Güç düğmesine 5’ten fazla basmayın, yoksa MCU 4 LED kilidine girer.',
+            'Kesin sıra: Sökerken BAT- → BAT+ → Kablo 4, 5, 6. Takarken Kablo 6 ve 5 → 5 SANİYE BEKLE → Kablo 4 → BAT+ → BAT-.'
+          ]
+        },
+        points: {
+          pt: ['100%: 58,80V (4,20V/célula)', 'Storage: 51,8V a 53,2V (3,70V–3,80V)', 'Corte Subtensão: 42,00V (3,00V/célula)', 'Pausa de 5s carrega capacitores do AFE'],
+          es: ['100%: 58,80V (4,20V/celda)', 'Storage: 51,8V a 53,2V (3,70V–3,80V)', 'Corte Subtensión: 42,00V (3,00V/celda)', 'Pausa de 5s carga capacitores del AFE'],
+          en: ['100%: 58.80V (4.20V/cell)', 'Storage: 51.8V–53.2V (3.70V–3.80V)', 'Undervoltage Cutoff: 42.00V (3.00V/cell)', '5s pause stabilizes AFE sampling caps'],
+          fr: ['100% : 58,80V (4,20V/cellule)', 'Storage : 51,8V–53,2V (3,70V–3,80V)', 'Coupure Sous-tension : 42,00V (3,00V/cell)', 'Pause 5s charge les condensateurs AFE'],
+          tr: ['%100: 58,80V (4,20V/hücre)', 'Depolama: 51,8V–53,2V (3,70V–3,80V)', 'Düşük Voltaj Kesme: 42,00V (3,00V/hücre)', '5 sn bekleme AFE kondansatörlerini dengeler']
+        }
+      },
+      {
+        id: 1,
+        badge: 'NÍVEL 1',
+        duration: '15 min',
+        primaryPhoto: 'c04',
+        photos: ['c04', 'c05', 'c06'],
+        title: {
+          pt: 'Diagnóstico Externo e Tabela Mestra de LEDs',
+          es: 'Diagnóstico Externo y Tabla Maestra de LEDs',
+          en: 'External Diagnostics & Master LED Fault Table',
+          fr: 'Diagnostic Externe et Tableau Maître des LEDs',
+          tr: 'Dış Arıza Tespiti ve Ana LED Hata Tablosu'
+        },
+        subtitle: {
+          pt: 'Limpeza do conector de 10 fendas, reativação <52V na fonte de bancada e leitura de LEDs.',
+          es: 'Limpieza del conector de 10 ranuras, reactivación <52V en fuente y lectura de LEDs.',
+          en: '10-slot connector cleaning, <52V bench PSU wake-up, and LED blink code decoding.',
+          fr: 'Nettoyage connecteur 10 fentes, réveil <52V sur alimentation et décodage des LEDs.',
+          tr: '10 yuvalı konnektör temizliği, <52V güç kaynağı ile uyandırma ve LED kod okuma.'
+        },
+        slides: {
+          pt: [
+            'Oxidação no conector de 10 fendas causa alerta falso de baixa voltagem e erro de autenticação (LEDs 3 e 4).',
+            'Limpeza química: limpa-contatos de secagem rápida + escova antiestática + teste de pressão mecânica com pino macho.',
+            'Bateria abaixo de 52,0V rejeitada pelo carregador DJI: ajuste a fonte de bancada em 54,0V / 1,5A–2,0A até atingir 52,5V.',
+            'Decodifique os 4 LEDs do painel antes de abrir a carcaça: cada combinação aponta exatamente o setor com falha.'
+          ],
+          es: [
+            'La oxidación en el conector de 10 ranuras causa falsa baja tensión y error de autenticación (LEDs 3 y 4).',
+            'Limpieza química: limpiacontactos rápido + cepillo antiestático + prueba de presión mecánica con pin macho.',
+            'Batería <52,0V rechazada por el cargador DJI: ajusta la fuente en 54,0V / 1,5A–2,0A hasta llegar a 52,5V.',
+            'Decodifica los 4 LEDs del panel antes de abrir la carcasa: cada patrón indica el sector exacto con falla.'
+          ],
+          en: [
+            'Corrosion on the 10-slot gold connector triggers false low-voltage warnings and authentication errors (LEDs 3 & 4).',
+            'Chemical cleaning: fast-dry contact cleaner + ESD brush + mechanical spring tension check with a male test pin.',
+            'Battery below 52.0V rejected by DJI charger: set bench PSU to 54.0V / 1.5A–2.0A until pack reaches 52.5V.',
+            'Decode the 4 panel LEDs before opening the shell: each blink pattern pinpoints the exact fault area.'
+          ],
+          fr: [
+            'L’oxydation du connecteur 10 fentes provoque de fausses alertes basse tension et une erreur d’authentification (LEDs 3 et 4).',
+            'Nettoyage chimique : nettoyant contacts rapide + brosse ESD + test de pression mécanique des lamelles.',
+            'Batterie <52,0V refusée par le chargeur DJI : réglez l’alimentation sur 54,0V / 1,5A–2,0A jusqu’à 52,5V.',
+            'Décodez les 4 LEDs avant d’ouvrir le boîtier : chaque clignotement cible précisément la panne.'
+          ],
+          tr: [
+            '10 yuvalı altın konnektörde oksitlenme, yanlış düşük voltaj ve doğrulama hatasına (LED 3 ve 4) yol açar.',
+            'Kimyasal temizlik: hızlı kuruyan kontak spreyi + antistatik fırça + erkek pin ile yay baskısı testi.',
+            'DJI şarj cihazı 52,0V altını reddederse: güç kaynağını 54,0V / 1,5A–2,0A yapıp 52,5V’a kadar yükseltin.',
+            'Kasayı açmadan önce 4 LED kodunu okuyun: her yanıp sönme deseni arızalı bölgeyi gösterir.'
+          ]
+        },
+        points: {
+          pt: ['Fonte de recuperação: 54,0V com limite 1,5A–2,0A', 'Subir até 52,5V e passar ao carregador DJI', 'LED 2: BMS/Capacitores | LED 3: Subtensão/Curto', 'LEDs 3+4: Autenticação | 4 LEDs: MCU bloqueado'],
+          es: ['Fuente de recuperación: 54,0V límite 1,5A–2,0A', 'Subir a 52,5V y pasar al cargador DJI', 'LED 2: BMS/Capacitores | LED 3: Subtensión/Corto', 'LEDs 3+4: Autenticación | 4 LEDs: MCU bloqueado'],
+          en: ['Recovery PSU: 54.0V limited to 1.5A–2.0A', 'Bring to 52.5V then move to original DJI charger', 'LED 2: BMS/Caps | LED 3: Undervoltage/Short', 'LEDs 3+4: Auth fail | 4 LEDs: MCU locked'],
+          fr: ['Alim récupération : 54,0V limité à 1,5A–2,0A', 'Monter à 52,5V puis charger sur chargeur DJI', 'LED 2 : BMS/Condos | LED 3 : Sous-tension/Court-circuit', 'LEDs 3+4 : Auth | 4 LEDs : MCU verrouillé'],
+          tr: ['Kurtarma güç kaynağı: 54,0V ve 1,5A–2,0A sınır', '52,5V’a çıkarıp orijinal DJI şarj cihazına takın', 'LED 2: BMS/Kondansatör | LED 3: Düşük voltaj/Kısa devre', 'LED 3+4: Doğrulama | 4 LED: MCU kilitli']
+        }
+      },
+      {
+        id: 2,
+        badge: 'NÍVEL 2',
+        duration: '18 min',
+        primaryPhoto: 'c08',
+        photos: ['c07', 'c08'],
+        title: {
+          pt: 'Medição de Células (VC0–VC14) e Fusíveis SMD',
+          es: 'Medición de Celdas (VC0–VC14) y Fusibles SMD',
+          en: 'Cell Measurement (VC0–VC14) & SMD Fuses',
+          fr: 'Mesure des Cellules (VC0–VC14) et Fusibles SMD',
+          tr: 'Hücre Ölçümü (VC0–VC14) ve SMD Sigortalar'
+        },
+        subtitle: {
+          pt: 'Mapeamento B- a B14, diagnóstico de séries ausentes (≤13S) e jumper em fusíveis SMD.',
+          es: 'Mapeo B- a B14, diagnóstico de series ausentes (≤13S) y puente en fusibles SMD.',
+          en: 'Pin mapping B- to B14, missing series fault (≤13S), and SMD fuse jumper repair.',
+          fr: 'Cartographie B- à B14, erreur séries manquantes (≤13S) et pontage de fusibles SMD.',
+          tr: 'B- ile B14 arası ölçüm, eksik seri hatası (≤13S) ve SMD sigorta köprüleme.'
+        },
+        slides: {
+          pt: [
+            'Meça em VDC na régua B- a B14 ou pads VC0 a VC14: ponta preta no pino anterior e vermelha no seguinte.',
+            'Critério de saúde: todas as 14 células entre 3,70V e 4,20V com delta menor que 0,03V a 0,05V.',
+            'Se o balanceador exibir 13S ou menos, há um microfusível SMD aberto na placa lateral das células (B1 a B13).',
+            'Teste em continuidade (Bip): o fusível que não bipar está rompido. Faça jumper de solda a 320°C com fluxo.'
+          ],
+          es: [
+            'Mide en VDC en la regleta B- a B14 o pads VC0–VC14: punta negra en el pin anterior y roja en el siguiente.',
+            'Criterio de salud: las 14 celdas entre 3,70V y 4,20V con delta menor a 0,03V–0,05V.',
+            'Si el balanceador muestra 13S o menos, hay un microfusible SMD abierto en la placa lateral (B1 a B13).',
+            'Prueba en continuidad (Bip): el fusible que no pita está abierto. Haz un puente de soldadura a 320°C con flux.'
+          ],
+          en: [
+            'Measure VDC on adapter strip B- to B14 or VC0–VC14 pads: black probe on previous pin, red on next pin.',
+            'Health criteria: all 14 cells between 3.70V and 4.20V with delta under 0.03V–0.05V.',
+            'If the balancer displays 13S or fewer, an SMD sampling fuse on the cell side board (B1–B13) is blown.',
+            'Test in continuity (Beep) mode: any silent fuse is open. Bridge both pads with solder at 320°C using flux.'
+          ],
+          fr: [
+            'Mesurez en VDC sur B- à B14 ou pads VC0–VC14 : pointe noire sur la broche précédente, rouge sur la suivante.',
+            'Critère de santé : 14 cellules entre 3,70V et 4,20V avec un delta inférieur à 0,03V–0,05V.',
+            'Si l’équilibreur affiche 13S ou moins, un microfusible SMD de la carte latérale (B1–B13) est ouvert.',
+            'Testez en continuité (Bip) : le fusible muet est coupé. Réalisez un pont de soudure à 320°C avec flux.'
+          ],
+          tr: [
+            'B- ile B14 veya VC0–VC14 pedlerinde VDC ölçün: siyah prob önceki pinde, kırmızı prob sonraki pinde.',
+            'Sağlık kriteri: 14 hücrenin tamamı 3,70V–4,20V arasında ve fark (delta) < 0,03V–0,05V olmalı.',
+            'Dengeleyici 13S veya daha az gösteriyorsa yan karttaki (B1–B13) bir SMD sigorta atmıştır.',
+            'Buzzer (süreklilik) modunda ölçün: ötmeyen sigorta açıktır. 320°C havya ve flux ile lehim köprüsü yapın.'
+          ]
+        },
+        points: {
+          pt: ['Célula 1: B- e B1 até Célula 14: B13 e B14', 'Leitura 0,00V indica fusível SMD aberto', 'Ferro de ponta fina a 320°C para jumper', 'Após jumper, balanceador volta a ler 14S'],
+          es: ['Celda 1: B- y B1 hasta Celda 14: B13 y B14', 'Lectura 0,00V indica fusible SMD abierto', 'Cautín punta fina a 320°C para puente', 'Tras el puente, el balanceador vuelve a leer 14S'],
+          en: ['Cell 1: B- to B1 up to Cell 14: B13 to B14', '0.00V reading means open SMD fuse', 'Fine-tip iron at 320°C for solder bridge', 'Balancer immediately restores 14S count'],
+          fr: ['Cellule 1 : B- à B1 jusqu’à Cellule 14 : B13 à B14', 'Lecture 0,00V = fusible SMD ouvert', 'Fer pointe fine à 320°C pour le pontage', 'L’équilibreur reconnaît aussitôt les 14S'],
+          tr: ['Hücre 1: B- ve B1 ... Hücre 14: B13 ve B14', '0,00V okuma açık SMD sigorta demektir', 'Köprü için 320°C ince uçlu havya kullanın', 'Köprü sonrası dengeleyici 14S’i hemen görür']
+        }
+      },
+      {
+        id: 3,
+        badge: 'NÍVEL 3',
+        duration: '22 min',
+        primaryPhoto: 'c09',
+        photos: ['c09', 'c10'],
+        title: {
+          pt: 'Equalização Ativa (24S515A) e Troca de Células',
+          es: 'Ecualización Activa (24S515A) y Cambio de Celdas',
+          en: 'Active Equalization (24S515A) & Cell Replacement',
+          fr: 'Équilibrage Actif (24S515A) et Remplacement de Cellule',
+          tr: 'Aktif Dengeleme (24S515A) ve Hücre Değişimi'
+        },
+        subtitle: {
+          pt: 'Nivelamento <0,015V na 24S515A, reativação unitária em 2,5V e troca cirúrgica de célula.',
+          es: 'Nivelación <0,015V en 24S515A, reactivación unitaria en 2,5V y cambio quirúrgico de celda.',
+          en: '<0.015V leveling on 24S515A, 2.5V single-cell wake-up, and surgical cell swap.',
+          fr: 'Nivellement <0,015V sur 24S515A, réveil unitaire à 2,5V et échange chirurgical de cellule.',
+          tr: '24S515A ile <0,015V dengeleme, 2,5V tek hücre uyandırma ve cerrahi hücre değişimi.'
+        },
+        slides: {
+          pt: [
+            'Na máquina 24S515A, conecte os chicotes 4 e 5, ajuste 3,0A–4,0A e equalize até o delta cair abaixo de 0,015V.',
+            'Célula colapsada em 2,5V: use o módulo unitário com 1,0A até 3,30V e depois 2,0A até 3,80V.',
+            'Deixe em repouso 60 min: se cair >0,10V ou resistência interna >5 mΩ, substitua a célula fisicamente.',
+            'Troca cirúrgica: isole com Kapton, corte o níquel com disco diamantado, solte com álcool isopropílico e solde a nova célula.'
+          ],
+          es: [
+            'En la 24S515A, conecta cables 4 y 5, ajusta 3,0A–4,0A y ecualiza hasta bajar el delta de 0,015V.',
+            'Celda colapsada en 2,5V: usa el módulo unitario a 1,0A hasta 3,30V y luego 2,0A hasta 3,80V.',
+            'Reposo de 60 min: si cae >0,10V o resistencia interna >5 mΩ, reemplaza la celda físicamente.',
+            'Cambio quirúrgico: aísla con Kapton, corta níquel con disco diamantado, despega con alcohol isopropílico y suelda la nueva celda.'
+          ],
+          en: [
+            'On the 24S515A machine, connect harnesses 4 & 5, set 3.0A–4.0A, and balance until delta drops below 0.015V.',
+            'Collapsed 2.5V cell: use single-cell module at 1.0A up to 3.30V, then 2.0A up to 3.80V.',
+            'Rest for 60 min: if voltage drops >0.10V or internal resistance >5 mΩ, replace the cell.',
+            'Surgical swap: mask with Kapton tape, cut nickel tabs with a diamond disc, lift with IPA, and spot/laser weld the new cell.'
+          ],
+          fr: [
+            'Sur la 24S515A, branchez les câbles 4 et 5, réglez 3,0A–4,0A et équilibrez jusqu’à un delta <0,015V.',
+            'Cellule à 2,5V : module unitaire à 1,0A jusqu’à 3,30V, puis 2,0A jusqu’à 3,80V.',
+            'Repos 60 min : si chute >0,10V ou résistance interne >5 mΩ, remplacez la cellule.',
+            'Remplacement : isolez au Kapton, coupez le nickel au disque diamanté, décollez à l’alcool isopropylique et soudez la nouvelle cellule.'
+          ],
+          tr: [
+            '24S515A cihazında 4 ve 5 nolu kabloları takın, 3,0A–4,0A ayarlayın ve delta <0,015V olana kadar dengeleyin.',
+            '2,5V’a düşmüş hücre: tekli modülle 3,30V’a kadar 1,0A, sonra 3,80V’a kadar 2,0A şarj edin.',
+            '60 dk dinlendirin: >0,10V düşüş veya iç direnç >5 mΩ ise hücreyi değiştirin.',
+            'Değişim: Kapton bantla yalıtın, elmas diskle nikeli kesin, izopropil alkolle söküp yeni hücreyi kaynaklayın.'
+          ]
+        },
+        points: {
+          pt: ['Corrente na 24S515A: 3,0A a 4,0A', 'Meta de equalização fina: Delta < 0,015V', 'Critério de descarte: queda >0,10V em 60 min ou >5 mΩ', 'Soldagem: Laser/Ponto ou Ferro 100W + estanho 63/37'],
+          es: ['Corriente en 24S515A: 3,0A a 4,0A', 'Meta de ecualización fina: Delta < 0,015V', 'Criterio de descarte: caída >0,10V en 60 min o >5 mΩ', 'Soldadura: Láser/Punto o Cautín 100W + estaño 63/37'],
+          en: ['24S515A current: 3.0A to 4.0A', 'Fine balance target: Delta < 0.015V', 'Replace if >0.10V drop in 60 min or IR > 5 mΩ', 'Weld: Laser/Spot welder or 100W iron + 63/37 solder'],
+          fr: ['Courant sur 24S515A : 3,0A à 4,0A', 'Objectif d’équilibrage fin : Delta < 0,015V', 'Remplacer si chute >0,10V en 60 min ou RI > 5 mΩ', 'Soudure : Laser/Point ou Fer 100W + étain 63/37'],
+          tr: ['24S515A akımı: 3,0A – 4,0A', 'İnce dengeleme hedefi: Delta < 0,015V', '60 dk’da >0,10V düşüş veya >5 mΩ ise değiştirin', 'Kaynak: Lazer/Punta veya 100W havya + 63/37 lehim']
+        }
+      },
+      {
+        id: 4,
+        badge: 'NÍVEL 4',
+        duration: '20 min',
+        primaryPhoto: 'c12',
+        photos: ['c11', 'c12', 'c13'],
+        title: {
+          pt: 'Comunicação RS485, Sensores NTC e Chip de Ciclo',
+          es: 'Comunicación RS485, Sensores NTC y Chip de Ciclo',
+          en: 'RS485 Bus, NTC Sensors & Cycle Chip',
+          fr: 'Bus RS485, Sondes NTC et Puce de Cycle',
+          tr: 'RS485 Hattı, NTC Sensörler ve Döngü Çipi'
+        },
+        subtitle: {
+          pt: 'Termistor NTC 10 kΩ (Conector 6), 4 vias do Chip de Ciclo (I2C) e linhas 485A/485B.',
+          es: 'Termistor NTC 10 kΩ (Conector 6), 4 vías del Chip de Ciclo (I2C) y líneas 485A/485B.',
+          en: '10 kΩ NTC thermistor (Connector 6), 4-wire Cycle Chip (I2C), and 485A/485B lines.',
+          fr: 'Thermistance NTC 10 kΩ (Connecteur 6), Puce de Cycle 4 fils (I2C) et lignes 485A/485B.',
+          tr: '10 kΩ NTC sensör (Konnektör 6), 4 kablolu Döngü Çipi (I2C) ve 485A/485B hatları.'
+        },
+        slides: {
+          pt: [
+            'Conector 6 é o canal exclusivo dos sensores térmicos NTC: a 25°C deve medir ~10 kΩ. Infinito ou 0 Ω exige troca.',
+            'Chip de Ciclo queimado gera LEDs 3 e 4 piscando e erro de autenticação. É universal entre T20, T30 e T40.',
+            'Ligação das 4 vias na placa-mãe: Vermelho → VCC_A | Preto → GND/VC0 | Verde → SDA_A | Azul → SCL_A.',
+            'Sem telemetria no carregador? Teste continuidade nos pads 485A e 485B e refaça trilhas corroídas com fio AWG 34.'
+          ],
+          es: [
+            'El Conector 6 es exclusivo de los sensores NTC: a 25°C debe medir ~10 kΩ. Circuito abierto o 0 Ω exige cambio.',
+            'Chip de Ciclo dañado causa LEDs 3 y 4 parpadeando y fallo de autenticación. Es universal en T20, T30 y T40.',
+            'Conexión de 4 vías en la BMS: Rojo → VCC_A | Negro → GND/VC0 | Verde → SDA_A | Azul → SCL_A.',
+            '¿Sin telemetría en el cargador? Verifica continuidad en pads 485A y 485B y repara pistas con hilo AWG 34.'
+          ],
+          en: [
+            'Connector 6 is dedicated to NTC thermal sensors: at 25°C it should read ~10 kΩ. Open or 0 Ω requires replacement.',
+            'Burned Cycle Chip causes blinking LEDs 3 & 4 and authentication failure. Universal across T20, T30, and T40.',
+            '4-wire BMS pinout: Red → VCC_A | Black → GND/VC0 | Green → SDA_A | Blue → SCL_A. Seal with black resin.',
+            'No charger telemetry? Check continuity on pads 485A & 485B and rebuild corroded traces with AWG 34 wire.'
+          ],
+          fr: [
+            'Le Connecteur 6 gère les sondes NTC : à 25°C la résistance est de ~10 kΩ. Circuit ouvert ou 0 Ω = remplacement.',
+            'Une Puce de Cycle HS fait clignoter les LEDs 3 et 4 (erreur d’authentification). Universelle T20, T30 et T40.',
+            'Câblage 4 fils sur BMS : Rouge → VCC_A | Noir → GND/VC0 | Vert → SDA_A | Bleu → SCL_A.',
+            'Pas de télémétrie chargeur ? Testez la continuité des pads 485A/485B et réparez au fil émaillé AWG 34.'
+          ],
+          tr: [
+            'Konnektör 6, NTC ısı sensörlerine aittir: 25°C’de ~10 kΩ olmalıdır. Açık devre veya 0 Ω ise değiştirin.',
+            'Yanmış Döngü Çipi, LED 3 ve 4’ün yanıp sönmesine ve doğrulama hatasına yol açar. T20, T30, T40 uyumludur.',
+            '4 kablo BMS bağlantısı: Kırmızı → VCC_A | Siyah → GND/VC0 | Yeşil → SDA_A | Mavi → SCL_A.',
+            'Şarj cihazı telemetri okumuyorsa 485A/485B pedlerini ölçün ve kopuk yolları AWG 34 telle onarın.'
+          ]
+        },
+        points: {
+          pt: ['NTC a 25°C: 10 kΩ (Conector 6)', 'Chip de Ciclo: Vermelho=VCC_A, Preto=GND/VC0', 'I2C: Verde=SDA_A, Azul=SCL_A + resina preta', 'RS485: pads 485A e 485B com fio AWG 34'],
+          es: ['NTC a 25°C: 10 kΩ (Conector 6)', 'Chip de Ciclo: Rojo=VCC_A, Negro=GND/VC0', 'I2C: Verde=SDA_A, Azul=SCL_A + resina negra', 'RS485: pads 485A y 485B con hilo AWG 34'],
+          en: ['NTC at 25°C: 10 kΩ (Connector 6)', 'Cycle Chip: Red=VCC_A, Black=GND/VC0', 'I2C: Green=SDA_A, Blue=SCL_A + black resin', 'RS485: 485A & 485B pads with AWG 34 wire'],
+          fr: ['NTC à 25°C : 10 kΩ (Connecteur 6)', 'Puce Cycle : Rouge=VCC_A, Noir=GND/VC0', 'I2C : Vert=SDA_A, Bleu=SCL_A + résine noire', 'RS485 : pads 485A et 485B au fil AWG 34'],
+          tr: ['25°C’de NTC: 10 kΩ (Konnektör 6)', 'Döngü Çipi: Kırmızı=VCC_A, Siyah=GND/VC0', 'I2C: Yeşil=SDA_A, Mavi=SCL_A + siyah reçine', 'RS485: 485A ve 485B pedleri AWG 34 tel ile']
+        }
+      },
+      {
+        id: 5,
+        badge: 'NÍVEL 5',
+        duration: '25 min',
+        primaryPhoto: 'c14',
+        photos: ['c14', 'c15', 'c16'],
+        title: {
+          pt: 'Eletrônica Avançada na BMS, MCU e T40 → T50',
+          es: 'Electrónica Avanzada en BMS, MCU y T40 → T50',
+          en: 'Advanced BMS Electronics, MCU & T40 → T50',
+          fr: 'Électronique Avancée BMS, MCU et T40 → T50',
+          tr: 'İleri Düzey BMS Elektroniği, MCU ve T40 → T50'
+        },
+        subtitle: {
+          pt: 'Fusível MEGA 300A, MOSFETs, capacitores cerâmicos, desbloqueio 4 LEDs e adaptação T40/T50.',
+          es: 'Fusible MEGA 300A, MOSFETs, capacitores cerámicos, desbloqueo 4 LEDs y adaptación T40/T50.',
+          en: 'MEGA 300A fuse, MOSFETs, ceramic caps, 4-LED MCU unlock, and T40-to-T50 adaptation.',
+          fr: 'Fusible MEGA 300A, MOSFETs, condensateurs, déblocage 4 LEDs et adaptation T40/T50.',
+          tr: 'MEGA 300A sigorta, MOSFET’ler, seramik kondansatör, 4 LED MCU açma ve T40→T50.'
+        },
+        slides: {
+          pt: [
+            'Remova a resina preta com soprador a 150°C e espátula isolada. Nunca use metal afiado sobre as trilhas.',
+            'Para LED 2 piscando ou curto geral: teste Fusível MEGA 300A, MOSFETs em escala de diodo e capacitores do canto inferior direito.',
+            'Bloqueio definitivo de 4 LEDs: substitua o MCU por um chip virgem de 0 ciclos e grave o firmware com P100 Downloader / pebot.',
+            'Adaptação T40 → T50: o circuito inferior é compatível, troque os 3 conectores plásticos e ajuste a pinagem do balanceador para T50!'
+          ],
+          es: [
+            'Retira la resina negra con aire caliente a 150°C y espátula aislada. Nunca uses metal afilado sobre pistas.',
+            'Para LED 2 parpadeando o corto: revisa Fusible MEGA 300A, MOSFETs en modo diodo y capacitores de la esquina inferior derecha.',
+            'Bloqueo definitivo de 4 LEDs: reemplaza el MCU por un chip virgen de 0 ciclos y graba firmware con P100 / pebot.',
+            'Adaptación T40 → T50: el circuito inferior es compatible, cambia los 3 conectores plásticos y ajusta el pinout del balanceador a T50.'
+          ],
+          en: [
+            'Remove black potting resin with hot air at 150°C and an insulated plastic spudger. Never scrape with sharp metal.',
+            'For blinking LED 2 or short circuit: test MEGA 300A fuse, MOSFETs in diode mode, and bottom-right ceramic capacitors.',
+            'Permanent 4-LED lock: swap the MCU with a virgin 0-cycle engineering chip and flash firmware via P100 Downloader / pebot.',
+            'T40 → T50 adaptation: lower power circuit is compatible; replace the 3 plastic sockets and reconfigure balancer pinout for T50!'
+          ],
+          fr: [
+            'Retirez la résine noire à l’air chaud à 150°C avec une spatule isolée. Ne grattez jamais au métal.',
+            'LED 2 clignotante ou court-circuit : testez le fusible MEGA 300A, les MOSFETs en mode diode et les condensateurs en bas à droite.',
+            'Verrouillage 4 LEDs : remplacez le MCU par une puce vierge 0 cycle et programmez avec P100 Downloader / pebot.',
+            'Adaptation T40 → T50 : remplacez les 3 connecteurs plastiques et réglez le brochage de l’équilibreur sur T50 !'
+          ],
+          tr: [
+            'Siyah reçineyi 150°C sıcak hava ve yalıtımlı plastik spatula ile temizleyin. Asla keskin metal kullanmayın.',
+            'LED 2 yanıp sönme / kısa devre: MEGA 300A sigortayı, diyot modunda MOSFET’leri ve sağ alt kondansatörleri test edin.',
+            'Kalıcı 4 LED kilidi: MCU’yu 0 döngü mühendislik çipiyle değiştirip P100 Downloader / pebot ile yazılım atın.',
+            'T40 → T50 uyarlama: 3 plastik soketi T50 ile değiştirin ve dengeleyici pin dizilimini T50’ye göre ayarlayın!'
+          ]
+        },
+        points: {
+          pt: ['Soprador térmico para resina: 150°C', 'Testar MEGA 300A + MOSFETs + Capacitores inf. direito', 'Reset 4 LEDs: MCU 0 ciclos + P100 Downloader', 'T40→T50: trocar 3 conectores + ajustar balanceador'],
+          es: ['Aire caliente para resina: 150°C', 'Probar MEGA 300A + MOSFETs + Capacitores inf. derecha', 'Reset 4 LEDs: MCU 0 ciclos + P100 Downloader', 'T40→T50: cambiar 3 conectores + ajustar balanceador'],
+          en: ['Hot air for resin removal: 150°C', 'Test MEGA 300A + MOSFETs + Bottom-right caps', '4-LED unlock: 0-cycle MCU + P100 Downloader', 'T40→T50: swap 3 connectors + set T50 balancer pinout'],
+          fr: ['Air chaud pour résine : 150°C', 'Tester MEGA 300A + MOSFETs + Condensateurs bas droite', 'Déblocage 4 LEDs : MCU 0 cycle + P100 Downloader', 'T40→T50 : changer 3 connecteurs + brochage T50'],
+          tr: ['Reçine için sıcak hava: 150°C', 'MEGA 300A + MOSFET + Sağ alt kondansatör testi', '4 LED açma: 0 döngü MCU + P100 Downloader', 'T40→T50: 3 soketi değiştir + T50 dengeleyici ayarı']
+        }
+      },
+      {
+        id: 6,
+        badge: 'NÍVEL 6',
+        duration: '14 min',
+        primaryPhoto: 'c17',
+        photos: ['c17', 'c04'],
+        title: {
+          pt: 'Troca de Conector com Banheira de Estanho',
+          es: 'Cambio de Conector con Baño de Estaño',
+          en: 'Connector Replacement with Solder Pot',
+          fr: 'Remplacement Connecteur au Bain d’Étain',
+          tr: 'Lehim Potası ile Konnektör Değişimi'
+        },
+        subtitle: {
+          pt: 'Técnica industrial de refusão simultânea a 280°C (4–5s) sem estresse térmico.',
+          es: 'Técnica industrial de refusión simultánea a 280°C (4–5s) sin estrés térmico.',
+          en: 'Simultaneous reflow technique at 280°C (4–5s) for multilayer BMS boards.',
+          fr: 'Refusion simultanée à 280°C (4–5s) pour cartes multicouches haute dissipation.',
+          tr: 'Çok katmanlı kartlarda 280°C’de (4–5 sn) eşzamanlı lehimleme tekniği.'
+        },
+        slides: {
+          pt: [
+            'Nunca use ferro de 60W ou soprador no conector de 10 vias: os planos de cobre dissipam calor e arrancam as ilhas.',
+            'Passo 1 e 2: limpe os pinos com álcool isopropílico 99,8% e aplique fluxo pastoso no-clean nas ilhas.',
+            'Passo 3: com a banheira estabilizada em 280°C, mergulhe os pinos por 4 a 5 segundos — o conector solta sem esforço.',
+            'Passo 4 e 5: desobstrua os furos com sugador/malha, posicione o conector novo e encoste 3 segundos no cadinho.'
+          ],
+          es: [
+            'Nunca uses cautín de 60W o aire en el conector de 10 vías: la placa multicapa disipa calor y arranca pistas.',
+            'Pasos 1 y 2: limpia con alcohol isopropílico 99,8% y aplica flux pastoso no-clean en todas las islas.',
+            'Paso 3: con el crisol estabilizado a 280°C, sumerge los pines 4 a 5 segundos — el conector sale sin fuerza.',
+            'Pasos 4 y 5: destapa orificios con extractor/malla, coloca el conector nuevo y sumerge 3 segundos.'
+          ],
+          en: [
+            'Never use a 60W iron or hot air on the 10-way connector: thick copper planes wick heat and tear out through-hole pads.',
+            'Steps 1 & 2: clean pins with 99.8% IPA and brush high-viscosity no-clean flux paste over all solder pads.',
+            'Step 3: with the solder pot steady at 280°C, dip all pins for 4 to 5 seconds max — the old connector drops out smoothly.',
+            'Steps 4 & 5: clear through-holes with solder sucker/wick, seat the new connector, and dip 3 seconds for uniform reflow.'
+          ],
+          fr: [
+            'N’utilisez jamais un fer 60W ou air chaud sur le connecteur 10 voies : le cuivre interne arrache les pastilles.',
+            'Étapes 1 et 2 : nettoyez à l’alcool isopropylique 99,8% et appliquez du flux no-clean sur toutes les pastilles.',
+            'Étape 3 : bain d’étain stabilisé à 280°C, plongez les broches 4 à 5 secondes max — le connecteur se libère sans effort.',
+            'Étapes 4 et 5 : débouchez les trous à la pompe/tresse, placez le connecteur neuf et plongez 3 secondes.'
+          ],
+          tr: [
+            '10 yollu konnektörde asla 60W havya veya sıcak hava kullanmayın: kalın bakır katmanlar ısıyı çeker ve yolları koparır.',
+            'Adım 1 ve 2: %99,8 IPA ile temizleyin ve tüm lehim pedlerine no-clean flux sürün.',
+            'Adım 3: 280°C’de sabitlenmiş lehim potasına pinleri en fazla 4–5 saniye daldırın — eski konnektör zahmetsizce çıkar.',
+            'Adım 4 ve 5: delikleri pompa/fitil ile açın, yeni konnektörü yerleştirin ve 3 saniye daldırarak lehimleyin.'
+          ]
+        },
+        points: {
+          pt: ['Temperatura da banheira: 280°C estáveis', 'Tempo máximo para sacar: 4 a 5 segundos', 'Tempo para soldar novo conector: 3 segundos', 'Limpeza prévia: Álcool Isopropílico 99,8% + Fluxo no-clean'],
+          es: ['Temperatura del baño: 280°C estables', 'Tiempo máximo de extracción: 4 a 5 segundos', 'Tiempo de soldadura nuevo: 3 segundos', 'Limpieza previa: Alcohol Isopropílico 99,8% + Flux no-clean'],
+          en: ['Solder pot temperature: 280°C steady', 'Max dip time to remove: 4 to 5 seconds', 'Dip time for new connector: 3 seconds', 'Prep: 99.8% IPA + high-viscosity no-clean flux'],
+          fr: ['Température du bain : 280°C stable', 'Temps max d’extraction : 4 à 5 secondes', 'Temps de soudure neuf : 3 secondes', 'Préparation : Alcool 99,8% + Flux no-clean'],
+          tr: ['Lehim potası sıcaklığı: Sabit 280°C', 'Sökme maksimum süresi: 4–5 saniye', 'Yeni konnektör lehim süresi: 3 saniye', 'Hazırlık: %99,8 IPA + no-clean flux']
+        }
+      },
+      {
+        id: 7,
+        badge: 'NÍVEL 7',
+        duration: '18 min',
+        primaryPhoto: 'c18',
+        photos: ['c18'],
+        title: {
+          pt: 'Descarregador Automatizado de Bancada (14S)',
+          es: 'Descargador Automatizado de Banco (14S)',
+          en: 'Automated Bench Discharger Project (14S)',
+          fr: 'Déchargeur Automatisé d’Atelier (14S)',
+          tr: 'Otomatik Tezgah Deşarj Cihazı (14S)'
+        },
+        subtitle: {
+          pt: 'Projeto completo com controlador XH-M609, relé SSR-40DD, resistores 20Ω/150W e coolers.',
+          es: 'Proyecto completo con controlador XH-M609, relé SSR-40DD, resistores 20Ω/150W y coolers.',
+          en: 'Complete build with XH-M609 controller, SSR-40DD relay, 20Ω/150W resistors, and cooling fans.',
+          fr: 'Projet complet avec contrôleur XH-M609, relais SSR-40DD, résistances 20Ω/150W et ventilateurs.',
+          tr: 'XH-M609 kontrolcü, SSR-40DD röle, 20Ω/150W dirençler ve fanlarla tam proje.'
+        },
+        slides: {
+          pt: [
+            'Células degradadas enganam em repouso, mas despencam sob carga. O descarregador revela alta resistência interna.',
+            'Componentes: Controlador XH-M609 (12–60V), Relé SSR-40DD (40A DC), 4x resistores 20Ω/150W em paralelo (Req=5Ω) e 2 coolers 12V.',
+            'Configuração Storage: corte em 52,0V. Teste de capacidade sob carga: corte em 47,0V.',
+            'ALERTA CRÍTICO: NUNCA configure o corte abaixo de 42,0V (3,0V/célula) ou causará dano permanente às células.'
+          ],
+          es: [
+            'Las celdas degradadas engañan en reposo pero caen bajo carga. El descargador revela alta resistencia interna.',
+            'Componentes: Controlador XH-M609 (12–60V), Relé SSR-40DD (40A DC), 4x resistores 20Ω/150W en paralelo (5Ω) y 2 coolers 12V.',
+            'Modo Storage: corte en 52,0V. Prueba de capacidad bajo carga: corte en 47,0V.',
+            'ALERTA CRÍTICA: NUNCA configures el corte por debajo de 42,0V (3,0V/celda) para evitar daño químico permanente.'
+          ],
+          en: [
+            'Weak cells look balanced at rest but sag sharply under flight load. The discharger exposes high internal resistance.',
+            'Parts: XH-M609 cutoff module (12–60V), SSR-40DD (40A DC), 4x 20Ω/150W resistors in parallel (5Ω, ~10A), and 2x 12V fans.',
+            'Storage mode cutoff: 52.0V. Load capacity test cutoff: 47.0V.',
+            'CRITICAL ALERT: NEVER set cutoff below 42.0V (3.0V/cell), or cells will suffer permanent chemical damage.'
+          ],
+          fr: [
+            'Les cellules fatiguées trompent au repos mais s’effondrent en charge. Le déchargeur révèle leur résistance interne.',
+            'Composants : module XH-M609 (12–60V), relais SSR-40DD (40A DC), 4 résistances 20Ω/150W en parallèle (5Ω) et 2 ventilateurs 12V.',
+            'Mode Storage : coupure à 52,0V. Test de capacité : coupure à 47,0V.',
+            'ALERTE CRITIQUE : ne réglez JAMAIS la coupure sous 42,0V (3,0V/cellule) sous peine de destruction chimique.'
+          ],
+          tr: [
+            'Zayıf hücreler boşta dengeli görünür ama yük altında çöker. Deşarj cihazı yüksek iç direnci ortaya çıkarır.',
+            'Bileşenler: XH-M609 modül (12–60V), SSR-40DD röle (40A DC), 4x paralel 20Ω/150W direnç (5Ω) ve 2x 12V fan.',
+            'Depolama (Storage) kesme: 52,0V. Yük kapasite testi kesme: 47,0V.',
+            'KRİTİK UYARI: Kesme voltajını ASLA 42,0V (3,0V/hücre) altına ayarlamayın!'
+          ]
+        },
+        points: {
+          pt: ['Banco resistivo: 4x 20Ω/150W paralelo = 5Ω (~10A)', 'Corte Storage: 52,0V | Teste de Carga: 47,0V', 'Limite absoluto: NUNCA < 42,0V', 'Parada imediata se temperatura > 55°C'],
+          es: ['Banco resistivo: 4x 20Ω/150W paralelo = 5Ω (~10A)', 'Corte Storage: 52,0V | Prueba Carga: 47,0V', 'Límite absoluto: NUNCA < 42,0V', 'Parada inmediata si temperatura > 55°C'],
+          en: ['Load bank: 4x 20Ω/150W parallel = 5Ω (~10A)', 'Storage cutoff: 52.0V | Load test: 47.0V', 'Hard limit: NEVER < 42.0V', 'Stop immediately if temp > 55°C'],
+          fr: ['Banc de charge : 4x 20Ω/150W parallèle = 5Ω (~10A)', 'Coupure Storage : 52,0V | Test charge : 47,0V', 'Limite absolue : JAMAIS < 42,0V', 'Arrêt immédiat si température > 55°C'],
+          tr: ['Yük bankası: 4x 20Ω/150W paralel = 5Ω (~10A)', 'Depolama kesme: 52,0V | Yük testi: 47,0V', 'Kesin sınır: ASLA < 42,0V', 'Sıcaklık > 55°C olursa hemen durdurun']
+        }
+      },
+      {
+        id: 8,
+        badge: 'ETAPA FINAL',
+        duration: '12 min',
+        primaryPhoto: 'c02',
+        photos: ['c01', 'c02', 'c05'],
+        title: {
+          pt: 'Liberação de Voo e Gestão de Oficina',
+          es: 'Liberación de Vuelo y Gestión de Taller',
+          en: 'Flight Release Checklist & Shop Management',
+          fr: 'Libération de Vol et Gestion d’Atelier',
+          tr: 'Uçuş Onayı ve Atölye Yönetimi'
+        },
+        subtitle: {
+          pt: 'Protocolo de validação com 8 testes obrigatórios e tabela de precificação recomendada.',
+          es: 'Protocolo de validación de 8 pruebas obligatorias y tabla de precios recomendada.',
+          en: '8-point flight release validation protocol and recommended service pricing.',
+          fr: 'Protocole de validation en 8 points et grille tarifaire recommandée.',
+          tr: '8 maddelik uçuş onay protokolü ve önerilen servis fiyatlandırma tablosu.'
+        },
+        slides: {
+          pt: [
+            'Antes de entregar ao cliente, valide os 8 pontos: carcaça, pinos dourados, 14 séries e delta estático < 0,030V.',
+            'Valide também o delta dinâmico sob carga (< 0,05V), carga plena em 58,8V no carregador DJI e 4 LEDs fixos no Power.',
+            'Por fim, confirme o serial, ciclos atualizados e temperatura nominal na telemetria do aplicativo/rádio.',
+            'Use a aba Oficina & Orçamento para calcular serviços de R$ 250 até R$ 2.400 e gerar seu certificado oficial!'
+          ],
+          es: [
+            'Antes de entregar al cliente, valida los 8 puntos: carcasa, pines dorados, 14 series y delta estático < 0,030V.',
+            'Valida también el delta dinámico bajo carga (< 0,05V), carga completa a 58,8V en cargador DJI y 4 LEDs fijos.',
+            'Confirma el número de serie, ciclos actualizados y temperatura nominal en la telemetría de la app/control.',
+            'Usa la pestaña Taller y Presupuesto para cotizar servicios y emitir tu certificado oficial.'
+          ],
+          en: [
+            'Before customer handover, verify all 8 points: shell integrity, gold pins, 14S count, and static delta < 0.030V.',
+            'Verify dynamic load delta (< 0.05V), full 58.8V charge on the original DJI charger, and 4 solid LEDs on Power press.',
+            'Confirm serial number, updated cycle count, and nominal temperature in the drone/controller telemetry app.',
+            'Use the Workshop & Quote tab to price repairs accurately and issue your official VoltMaster certificate!'
+          ],
+          fr: [
+            'Avant livraison, validez les 8 points : boîtier, broches dorées, 14 séries et delta statique < 0,030V.',
+            'Validez le delta dynamique en charge (< 0,05V), charge pleine à 58,8V sur chargeur DJI et 4 LEDs fixes.',
+            'Vérifiez le numéro de série, les cycles à jour et la température nominale dans la télémétrie radio/app.',
+            'Utilisez l’onglet Atelier & Devis pour chiffrer vos prestations et générer votre certificat officiel.'
+          ],
+          tr: [
+            'Müşteriye teslimden önce 8 maddeyi doğrulayın: kasa, altın pinler, 14S sayımı ve statik delta < 0,030V.',
+            'Yük altında dinamik delta (< 0,05V), DJI şarj cihazında 58,8V tam şarj ve 4 sabit LED’i onaylayın.',
+            'Kumanda/uygulama telemetrisinde seri no, güncel döngü ve normal sıcaklığı kontrol edin.',
+            'Servis fiyatlandırması ve resmi sertifikanız için Atölye & Teklif sekmesini kullanın!'
+          ]
+        },
+        points: {
+          pt: ['Delta estático: < 0,030V | Dinâmico: < 0,050V', 'Carga completa validada: 58,80V no carregador DJI', 'Serviços: R$ 250 (limpeza) a R$ 2.400 (MCU/4 LEDs)', 'Suporte VoltMaster: (61) 9 8524-5726'],
+          es: ['Delta estático: < 0,030V | Dinámico: < 0,050V', 'Carga completa validada: 58,80V en cargador DJI', 'Servicios: R$ 250 (limpieza) a R$ 2.400 (MCU/4 LEDs)', 'Soporte VoltMaster: (61) 9 8524-5726'],
+          en: ['Static delta: < 0.030V | Dynamic: < 0.050V', 'Full charge verified: 58.80V on DJI charger', 'Services: R$ 250 (cleaning) to R$ 2,400 (MCU/4 LEDs)', 'VoltMaster Support: +55 (61) 9 8524-5726'],
+          fr: ['Delta statique : < 0,030V | Dynamique : < 0,050V', 'Pleine charge validée : 58,80V sur chargeur DJI', 'Prestations : R$ 250 (nettoyage) à R$ 2 400 (MCU)', 'Support VoltMaster : +55 (61) 9 8524-5726'],
+          tr: ['Statik delta: < 0,030V | Dinamik: < 0,050V', 'Tam şarj onayı: DJI şarj cihazında 58,80V', 'Hizmetler: R$ 250 (temizlik) – R$ 2.400 (MCU)', 'VoltMaster Destek: +55 (61) 9 8524-5726']
+        }
+      }
+    ];
+
+    /**************************************************************************
+     * 4. DADOS DE CHECKLIST E PRECIFICAÇÃO (5 IDIOMAS)
+     **************************************************************************/
+    const CHECKLIST_DATA = [
+      { pt: 'Inspeção estrutural da carcaça plástica e aletas', es: 'Inspección estructural de carcasa y aletas', en: 'Structural inspection of plastic shell & fins', fr: 'Inspection structurelle du boîtier et ailettes', tr: 'Plastik kasa ve soğutma kanatçığı kontrolü' },
+      { pt: 'Inspeção óptica dos pinos dourados do conector principal', es: 'Inspección óptica de pines dorados del conector', en: 'Optical inspection of gold main connector pins', fr: 'Inspection optique des broches dorées', tr: 'Altın ana konnektör pinlerinin optik kontrolü' },
+      { pt: 'Contagem exata de 14 séries no balanceador', es: 'Conteo exacto de 14 series en el balanceador', en: 'Exact 14S series count on balancer', fr: 'Comptage exact de 14 séries sur équilibreur', tr: 'Dengeleyicide tam 14S seri sayımı' },
+      { pt: 'Delta de tensão em repouso estático < 0,030V', es: 'Delta de voltaje en reposo estático < 0,030V', en: 'Static resting voltage delta < 0.030V', fr: 'Delta de tension statique au repos < 0,030V', tr: 'Boşta statik voltaj farkı (delta) < 0,030V' },
+      { pt: 'Delta dinâmico sob carga no descarregador < 0,050V', es: 'Delta dinámico bajo carga en descargador < 0,050V', en: 'Dynamic delta under load discharger < 0.050V', fr: 'Delta dynamique en charge < 0,050V', tr: 'Yük altında dinamik delta < 0,050V' },
+      { pt: 'Ciclo de carga completa (58,8V) no carregador DJI', es: 'Carga completa (58,8V) en cargador original DJI', en: 'Full charge cycle (58.8V) on original DJI charger', fr: 'Cycle de charge complet (58,8V) sur chargeur DJI', tr: 'Orijinal DJI şarj cihazında tam şarj (58,8V)' },
+      { pt: 'Teste botão Power fora do drone (4 LEDs fixos)', es: 'Prueba botón Power fuera del dron (4 LEDs fijos)', en: 'Power button test off-drone (4 solid LEDs)', fr: 'Test bouton Power hors drone (4 LEDs fixes)', tr: 'Drone dışında Güç düğmesi testi (4 sabit LED)' },
+      { pt: 'Telemetria no app/rádio (serial, ciclos e temperatura)', es: 'Telemetría en app/radio (serial, ciclos y temp.)', en: 'App/RC telemetry (serial, cycles & temperature)', fr: 'Télémétrie app/radio (série, cycles et temp.)', tr: 'Uygulama/kumanda telemetrisi (seri, döngü, ısı)' }
+    ];
+
+    const PRICING_SERVICES = [
+      { id: 's1', price: 325, range: 'R$ 250–400', names: { pt: 'Limpeza química profunda e recondicionamento de conector', es: 'Limpieza química profunda y reacondicionamiento de conector', en: 'Deep chemical cleaning & connector reconditioning', fr: 'Nettoyage chimique profond et connecteur', tr: 'Derin kimyasal temizlik ve konnektör bakımı' } },
+      { id: 's2', price: 750, range: 'R$ 600–900', names: { pt: 'Recuperação descarga profunda + Equalização ativa', es: 'Recuperación descarga profunda + Ecualización activa', en: 'Deep discharge recovery + Active equalization', fr: 'Récupération décharge profonde + Équilibrage actif', tr: 'Derin deşarj kurtarma + Aktif dengeleme' } },
+      { id: 's3', price: 900, range: 'R$ 700–1.100', names: { pt: 'Reparo de fusíveis SMD (jumpers) + balanceamento', es: 'Reparación de fusibles SMD (puentes) + balanceo', en: 'SMD fuse jumper repair + balancing', fr: 'Réparation fusibles SMD (pontages) + équilibrage', tr: 'SMD sigorta köprü onarımı + dengeleme' } },
+      { id: 's4', price: 1050, range: 'R$ 800–1.300', names: { pt: 'Substituição de conector principal na banheira de solda', es: 'Cambio de conector principal en baño de estaño', en: 'Main connector replacement via solder pot', fr: 'Remplacement connecteur au bain d’étain', tr: 'Lehim potası ile ana konnektör değişimi' } },
+      { id: 's5', price: 1500, range: 'R$ 1.200–1.800', names: { pt: 'Troca e soldagem cirúrgica de célula unitária 14S', es: 'Cambio y soldadura quirúrgica de celda unitaria 14S', en: 'Surgical 14S single-cell replacement & welding', fr: 'Remplacement chirurgical de cellule unitaire 14S', tr: 'Cerrahi 14S tek hücre değişimi ve kaynağı' } },
+      { id: 's6', price: 1950, range: 'R$ 1.500–2.400', names: { pt: 'Desbloqueio 4 LEDs / Troca de MCU + Reset serial/ciclos', es: 'Desbloqueo 4 LEDs / Cambio de MCU + Reset ciclos', en: '4-LED unlock / MCU swap + serial/cycle reset', fr: 'Déblocage 4 LEDs / Remplacement MCU + Reset', tr: '4 LED kilit açma / MCU değişimi + sıfırlama' } }
+    ];
+
+    /**************************************************************************
+     * 5. ESTADO GLOBAL DA APLICAÇÃO
+     **************************************************************************/
+    const state = {
+      lang: 'pt',
+      view: 'course',
+      currentMod: 0,
+      currentSlide: 0,
+      isPlaying: false,
+      playTimer: null,
+      voiceEnabled: true,
+      visualMode: 'photo', // 'photo' | 'svg'
+      completedModules: [],
+      photos: {}, // { c01: 'data:image/jpeg;base64,...' }
+      photoFilter: 'all',
+      checklist: Array(8).fill(false),
+      selectedServices: {},
+      // Estados dos laboratórios
+      lab0Step: 0,
+      lab1Pattern: 'led2',
+      lab2FixedFuses: [],
+      lab3Delta: 0.240,
+      lab4Wired: {},
+      lab5Checked: [],
+      lab6Timer: 0,
+      lab6Running: false,
+      lab6Interval: null,
+      lab7Cutoff: 52.0
+    };
+
+    const STORAGE_KEY_STATE = 'voltmaster_state_v3';
+    const STORAGE_KEY_PHOTOS = 'voltmaster_photos_v3';
+
+    function t(key) {
+      return (UI_STRINGS[state.lang] && UI_STRINGS[state.lang][key]) || UI_STRINGS.pt[key] || key;
+    }
+
+    /**************************************************************************
+     * 6. PERSISTÊNCIA (LOCALSTORAGE + FOTOS EMBUTIDAS)
+     **************************************************************************/
+    function loadPersistedData() {
+      try {
+        const embeddedEl = document.getElementById('voltmaster-embedded-photos');
+        if (embeddedEl && embeddedEl.textContent.trim().length > 2) {
+          const parsedEmb = JSON.parse(embeddedEl.textContent);
+          if (parsedEmb && typeof parsedEmb === 'object') {
+            state.photos = Object.assign({}, parsedEmb);
+          }
+        }
+      } catch (e) { console.warn('Embedded photos parse skip:', e); }
+
+      try {
+        const savedPhotos = localStorage.getItem(STORAGE_KEY_PHOTOS);
+        if (savedPhotos) {
+          state.photos = Object.assign({}, state.photos, JSON.parse(savedPhotos));
+        }
+      } catch (e) { console.warn('Local photos load skip:', e); }
+
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_STATE);
+        if (saved) {
+          const d = JSON.parse(saved);
+          if (d.lang && LANG_META[d.lang]) state.lang = d.lang;
+          if (Array.isArray(d.completedModules)) state.completedModules = d.completedModules;
+          if (Array.isArray(d.checklist) && d.checklist.length === 8) state.checklist = d.checklist;
+          if (d.studentName) {
+            const inp = document.getElementById('cert-student-name');
+            if (inp) inp.value = d.studentName;
+          }
+        }
+      } catch (e) { console.warn('State load skip:', e); }
+    }
+
+    function saveState() {
+      try {
+        const nameInp = document.getElementById('cert-student-name');
+        localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify({
+          lang: state.lang,
+          completedModules: state.completedModules,
+          checklist: state.checklist,
+          studentName: nameInp ? nameInp.value : 'Douglas Coutrim Silva'
+        }));
+      } catch (e) { /* ignore quota */ }
+    }
+
+    function savePhotos() {
+      try {
+        localStorage.setItem(STORAGE_KEY_PHOTOS, JSON.stringify(state.photos));
+      } catch (e) {
+        showToast('Armazenamento local cheio. Use "Exportar Curso (.html)" para salvar definitivamente.', 'amber');
+      }
+    }
+
+    /**************************************************************************
+     * 7. NOTIFICAÇÕES E MODAIS
+     **************************************************************************/
+    function showToast(msg, tone = 'emerald') {
+      const container = document.getElementById('toast-container');
+      const div = document.createElement('div');
+      const colors = tone === 'rose'
+        ? 'bg-rose-950/95 border-rose-500/50 text-rose-100'
+        : tone === 'amber'
+          ? 'bg-amber-950/95 border-amber-500/50 text-amber-100'
+          : 'bg-emerald-950/95 border-emerald-500/50 text-emerald-100';
+      div.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-semibold transition-all duration-300 ${colors}`;
+      div.textContent = msg;
+      container.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(8px)';
+        setTimeout(() => div.remove(), 300);
+      }, 3200);
+    }
+
+    function openLightbox(src, title) {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox-title').textContent = title;
+      const modal = document.getElementById('lightbox-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeLightbox() {
+      const modal = document.getElementById('lightbox-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    let pendingConfirmCb = null;
+    function showConfirmModal(title, message, onConfirm) {
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      document.getElementById('confirm-cancel').textContent = t('cancel');
+      document.getElementById('confirm-ok').textContent = t('confirm');
+      pendingConfirmCb = onConfirm;
+      const m = document.getElementById('confirm-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeConfirmModal() {
+      const m = document.getElementById('confirm-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      pendingConfirmCb = null;
+    }
+
+    /**************************************************************************
+     * 8. TROCA DE IDIOMA E RENDERIZAÇÃO GERAL
+     **************************************************************************/
+    function setLanguage(langCode, silent = false) {
+      if (!LANG_META[langCode]) return;
+      stopLesson();
+      state.lang = langCode;
+      document.documentElement.lang = LANG_META[langCode].htmlLang;
+      saveState();
+
+      // Atualiza botões de idioma
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        const active = btn.getAttribute('data-lang-btn') === langCode;
+        btn.className = active
+          ? 'lang-btn px-2 py-1 rounded-lg text-xs font-bold transition bg-emerald-600 text-white shadow'
+          : 'lang-btn px-2 py-1 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white hover:bg-slate-800';
+      });
+
+      // Atualiza textos estáticos da UI
+      document.querySelector('[data-nav="course"]').textContent = t('navCourse');
+      document.querySelector('[data-nav="photos"]').textContent = t('navPhotos');
+      document.querySelector('[data-nav="workshop"]').textContent = t('navWorkshop');
+      document.querySelector('[data-nav="certificate"]').textContent = t('navCert');
+
+      document.getElementById('txt-modules-heading').textContent = t('modulesHeading');
+      document.getElementById('btn-mode-photo').textContent = t('modePhoto');
+      document.getElementById('btn-mode-svg').textContent = t('modeSvg');
+      document.getElementById('btn-quick-upload').textContent = t('quickUpload');
+      document.getElementById('txt-lesson-components').textContent = t('lessonComponents');
+      document.getElementById('btn-open-studio-inline').textContent = t('openStudio');
+      document.getElementById('txt-tech-summary-title').textContent = t('techSummary');
+      document.getElementById('lab-tag').textContent = t('labTag');
+
+      document.getElementById('photos-badge').textContent = t('photosBadge');
+      document.getElementById('photos-title').textContent = t('photosTitle');
+      document.getElementById('photos-desc').textContent = t('photosDesc');
+      document.getElementById('btn-export-html').textContent = t('exportHtml');
+      document.getElementById('btn-backup-json').textContent = t('backupJson');
+      document.getElementById('btn-restore-json').textContent = t('restoreJson');
+
+      document.getElementById('chk-title').textContent = t('chkTitle');
+      document.getElementById('chk-subtitle').textContent = t('chkSubtitle');
+      document.getElementById('calc-title').textContent = t('calcTitle');
+      document.getElementById('calc-subtitle').textContent = t('calcSubtitle');
+      document.getElementById('lbl-client-name').textContent = t('clientName');
+      document.getElementById('lbl-battery-model').textContent = t('batteryModel');
+      document.getElementById('lbl-total-est').textContent = t('totalEst');
+      document.getElementById('btn-copy-quote').textContent = t('copyQuote');
+      document.getElementById('btn-reset-quote').textContent = t('resetQuote');
+      document.getElementById('refs-title').textContent = t('refsTitle');
+
+      document.getElementById('lbl-cert-student').textContent = t('certStudentLbl');
+      document.getElementById('btn-print-cert').textContent = t('printCert');
+      document.getElementById('cert-eyebrow').textContent = t('certEyebrow');
+      document.getElementById('cert-heading').textContent = t('certHeading');
+      document.getElementById('cert-intro').textContent = t('certIntro');
+      document.getElementById('cert-body').textContent = t('certBody');
+      document.getElementById('cert-role-instructor').textContent = t('certInstructor');
+      document.getElementById('cert-role-date').textContent = t('certDateRole');
+
+      renderModuleList();
+      renderCurrentLesson();
+      renderPhotoStudio();
+      renderWorkshop();
+      updateCertificate();
+
+      if (!silent) showToast(t('toastLang'), 'emerald');
+    }
+
+    function switchView(viewName) {
+      stopLesson();
+      state.view = viewName;
+      ['course', 'photos', 'workshop', 'certificate'].forEach(v => {
+        document.getElementById('view-' + v).classList.toggle('hidden', v !== viewName);
+        const btn = document.querySelector(`[data-nav="${v}"]`);
+        if (btn) {
+          btn.className = v === viewName
+            ? 'nav-tab shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+            : 'nav-tab shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800';
+        }
+      });
+      if (viewName === 'certificate') updateCertificate();
+    }
+
+    /**************************************************************************
+     * 9. RENDERIZAÇÃO DO CURSO E PLAYER INTERATIVO
+     **************************************************************************/
+    function renderModuleList() {
+      const list = document.getElementById('module-list');
+      list.innerHTML = '';
+      MODULES.forEach(m => {
+        const active = m.id === state.currentMod;
+        const done = state.completedModules.includes(m.id);
+        const btn = document.createElement('button');
+        btn.onclick = () => selectModule(m.id);
+        btn.className = `w-full text-left p-3 rounded-xl border transition flex items-start gap-2.5 ${
+          active
+            ? 'bg-emerald-500/15 border-emerald-500/50 text-white'
+            : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+        }`;
+        btn.innerHTML = `
+          <span class="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+            done ? 'bg-emerald-500 text-slate-950' : active ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400' : 'bg-slate-800 text-slate-400'
+          }">${done ? '✓' : m.id}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider ${active ? 'text-emerald-400' : 'text-slate-500'}">${m.badge}</span>
+              <span class="text-[10px] font-mono-tech text-slate-500">${m.duration}</span>
+            </div>
+            <p class="text-xs font-bold leading-snug mt-0.5 line-clamp-2">${m.title[state.lang]}</p>
+          </div>
+        `;
+        list.appendChild(btn);
+      });
+      updateProgressUI();
+    }
+
+    function selectModule(modId) {
+      stopLesson();
+      state.currentMod = modId;
+      state.currentSlide = 0;
+      renderModuleList();
+      renderCurrentLesson();
+    }
+
+    function renderCurrentLesson() {
+      const m = MODULES[state.currentMod];
+      const done = state.completedModules.includes(m.id);
+
+      document.getElementById('lesson-badge').textContent = m.badge;
+      document.getElementById('lesson-duration').textContent = '⏱ ' + m.duration;
+      document.getElementById('lesson-title').textContent = m.title[state.lang];
+      document.getElementById('lesson-subtitle').textContent = m.subtitle[state.lang];
+
+      const btnDone = document.getElementById('btn-mark-complete');
+      btnDone.textContent = done ? t('completedBtn') : t('markComplete');
+      btnDone.className = done
+        ? 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition border shrink-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+        : 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition border shrink-0 bg-slate-800 hover:bg-emerald-600 text-white border-slate-700';
+
+      // Pontos técnicos
+      const ptsWrap = document.getElementById('lesson-tech-points');
+      ptsWrap.innerHTML = m.points[state.lang].map(p => `
+        <div class="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+          <span class="text-emerald-400 font-black mt-0.5">⚡</span>
+          <span>${p}</span>
+        </div>
+      `).join('');
+
+      // Faixa de componentes da aula
+      const strip = document.getElementById('lesson-components-strip');
+      strip.innerHTML = m.photos.map(cid => {
+        const comp = PHOTO_COMPONENTS.find(c => c.id === cid);
+        const imgSrc = state.photos[cid];
+        return `
+          <div onclick="focusComponentInPlayer('${cid}')" class="cursor-pointer group rounded-xl bg-slate-950 border ${imgSrc ? 'border-emerald-500/40' : 'border-slate-800'} overflow-hidden hover:border-emerald-400 transition">
+            <div class="aspect-video bg-slate-900 flex items-center justify-center overflow-hidden relative">
+              ${imgSrc
+                ? `<img src="${imgSrc}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />`
+                : `<span class="text-[11px] text-slate-500 font-mono-tech">#${comp.num} SVG</span>`}
+              <span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold ${imgSrc ? 'text-emerald-400' : 'text-amber-400'}">${imgSrc ? 'REAL' : 'SVG'}</span>
+            </div>
+            <div class="p-2">
+              <p class="text-[11px] font-semibold text-slate-200 line-clamp-2">${comp.labels[state.lang]}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updatePlayerVisual();
+      updatePlayerControlsUI();
+      renderModuleLab(m.id);
+    }
+
+    function focusComponentInPlayer(cid) {
+      if (state.photos[cid]) {
+        state.visualMode = 'photo';
+        renderPlayerPhotoById(cid);
+      } else {
+        triggerQuickPhotoUpload(cid);
+      }
+    }
+
+    function setPlayerVisualMode(mode) {
+      state.visualMode = mode;
+      updatePlayerVisual();
+    }
+
+    function renderPlayerPhotoById(cid) {
+      const comp = PHOTO_COMPONENTS.find(c => c.id === cid);
+      const src = state.photos[cid];
+      const photoLayer = document.getElementById('player-photo-layer');
+      const svgLayer = document.getElementById('player-svg-layer');
+      if (src) {
+        const img = document.getElementById('player-real-img');
+        img.src = src;
+        img.classList.toggle('animate-kenburns', state.isPlaying);
+        document.getElementById('player-photo-caption').textContent = `#${comp.num} • ${comp.labels[state.lang]}`;
+        photoLayer.classList.remove('hidden');
+        svgLayer.classList.add('hidden');
+      } else {
+        photoLayer.classList.add('hidden');
+        svgLayer.classList.remove('hidden');
+        svgLayer.innerHTML = buildModuleSVG(state.currentMod);
+      }
+      updateVisualModeButtons();
+    }
+
+    function updateVisualModeButtons() {
+      const photoBtn = document.getElementById('btn-mode-photo');
+      const svgBtn = document.getElementById('btn-mode-svg');
+      const showingPhoto = !document.getElementById('player-photo-layer').classList.contains('hidden');
+      photoBtn.className = showingPhoto
+        ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-600 text-white'
+        : 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700';
+      svgBtn.className = !showingPhoto
+        ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-600 text-white'
+        : 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700';
+    }
+
+    function updatePlayerVisual() {
+      const m = MODULES[state.currentMod];
+      const slides = m.slides[state.lang];
+      document.getElementById('player-subtitle-text').textContent = slides[state.currentSlide] || slides[0];
+      document.getElementById('player-step-indicator').textContent = `${state.currentSlide + 1}/${slides.length}`;
+      const pct = ((state.currentSlide + 1) / slides.length) * 100;
+      document.getElementById('player-progress-fill').style.width = pct + '%';
+
+      // Escolhe foto do slide se houver
+      const availablePhotos = m.photos.filter(id => !!state.photos[id]);
+      if (state.visualMode === 'photo' && availablePhotos.length > 0) {
+        const targetId = availablePhotos[state.currentSlide % availablePhotos.length];
+        renderPlayerPhotoById(targetId);
+      } else {
+        document.getElementById('player-photo-layer').classList.add('hidden');
+        const svgLayer = document.getElementById('player-svg-layer');
+        svgLayer.classList.remove('hidden');
+        svgLayer.innerHTML = buildModuleSVG(m.id);
+        updateVisualModeButtons();
+      }
+    }
+
+    function updatePlayerControlsUI() {
+      document.getElementById('btn-play-pause').textContent = state.isPlaying ? t('pause') : t('play');
+      const vBtn = document.getElementById('btn-toggle-voice');
+      vBtn.textContent = state.voiceEnabled ? t('voiceOn') : t('voiceOff');
+      vBtn.className = state.voiceEnabled
+        ? 'px-3 py-2 rounded-xl text-xs font-bold border transition bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+        : 'px-3 py-2 rounded-xl text-xs font-bold border transition bg-slate-800 text-slate-400 border-slate-700';
+    }
+
+    function speakCurrentSlide() {
+      if (!state.voiceEnabled || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const text = MODULES[state.currentMod].slides[state.lang][state.currentSlide];
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = LANG_META[state.lang].speech;
+        utter.rate = 1.02;
+        window.speechSynthesis.speak(utter);
+      } catch (e) { /* ignore speech errors */ }
+    }
+
+    function togglePlayLesson() {
+      if (state.isPlaying) {
+        stopLesson();
+        return;
+      }
+      state.isPlaying = true;
+      updatePlayerControlsUI();
+      updatePlayerVisual();
+      speakCurrentSlide();
+      state.playTimer = setInterval(() => {
+        const total = MODULES[state.currentMod].slides[state.lang].length;
+        if (state.currentSlide < total - 1) {
+          state.currentSlide++;
+          updatePlayerVisual();
+          speakCurrentSlide();
+        } else {
+          stopLesson();
+        }
+      }, 7500);
+    }
+
+    function stopLesson() {
+      state.isPlaying = false;
+      if (state.playTimer) {
+        clearInterval(state.playTimer);
+        state.playTimer = null;
+      }
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      const img = document.getElementById('player-real-img');
+      if (img) img.classList.remove('animate-kenburns');
+      updatePlayerControlsUI();
+    }
+
+    function toggleVoiceNarration() {
+      state.voiceEnabled = !state.voiceEnabled;
+      if (!state.voiceEnabled && 'speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      updatePlayerControlsUI();
+    }
+
+    function nextSlide() {
+      const total = MODULES[state.currentMod].slides[state.lang].length;
+      state.currentSlide = (state.currentSlide + 1) % total;
+      updatePlayerVisual();
+      if (state.isPlaying) speakCurrentSlide();
+    }
+
+    function prevSlide() {
+      const total = MODULES[state.currentMod].slides[state.lang].length;
+      state.currentSlide = (state.currentSlide - 1 + total) % total;
+      updatePlayerVisual();
+      if (state.isPlaying) speakCurrentSlide();
+    }
+
+    function toggleCurrentModuleComplete() {
+      const id = state.currentMod;
+      const idx = state.completedModules.indexOf(id);
+      if (idx === -1) state.completedModules.push(id);
+      else state.completedModules.splice(idx, 1);
+      saveState();
+      renderModuleList();
+      renderCurrentLesson();
+    }
+
+    function updateProgressUI() {
+      const pct = Math.round((state.completedModules.length / MODULES.length) * 100);
+      document.getElementById('hdr-progress-bar').style.width = pct + '%';
+      document.getElementById('hdr-progress-text').textContent = pct + '%';
+      document.getElementById('sidebar-completed-badge').textContent = `${state.completedModules.length}/${MODULES.length}`;
+    }
+
+    /**************************************************************************
+     * 10. DIAGRAMAS SVG TÉCNICOS (FALLBACK QUANDO NÃO HÁ FOTO REAL)
+     **************************************************************************/
+    function buildModuleSVG(modId) {
+      const svgs = {
+        0: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="40" y="35" width="520" height="250" rx="18" fill="#0f172a" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="8 6"/>
+              <text x="300" y="65" fill="#f87171" font-size="13" font-weight="bold" text-anchor="middle" font-family="JetBrains Mono">⚠ PERIMETER EDGES = GND (TERRA) — SHORT > 300A ⚠</text>
+              <rect x="75" y="95" width="130" height="65" rx="10" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+              <text x="140" y="123" fill="#4ade80" font-size="13" font-weight="bold" text-anchor="middle">14S PACK</text>
+              <text x="140" y="145" fill="#cbd5e1" font-size="12" text-anchor="middle">58.80V (4.20V/cell)</text>
+              <rect x="235" y="95" width="130" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <text x="300" y="123" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">STORAGE</text>
+              <text x="300" y="145" fill="#cbd5e1" font-size="12" text-anchor="middle">51.8V – 53.2V</text>
+              <rect x="395" y="95" width="130" height="65" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+              <text x="460" y="123" fill="#fbbf24" font-size="13" font-weight="bold" text-anchor="middle">POWER RULE</text>
+              <text x="460" y="145" fill="#cbd5e1" font-size="12" text-anchor="middle">MAX 5 PRESSES</text>
+              <rect x="75" y="185" width="450" height="70" rx="10" fill="#064e3b" fill-opacity="0.4" stroke="#10b981"/>
+              <text x="300" y="213" fill="#6ee7b7" font-size="13" font-weight="bold" text-anchor="middle">REASSEMBLY: [6 & 5] → WAIT 5s → [4] → [BAT+] → [BAT-]</text>
+              <text x="300" y="237" fill="#a7f3d0" font-size="11" text-anchor="middle">DISASSEMBLY: [BAT-] → [BAT+] → [4] → [5] → [6]</text>
+            </svg>`,
+        1: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="90" y="65" width="420" height="120" rx="45" fill="#1e293b" stroke="#64748b" stroke-width="4"/>
+              ${Array.from({length:10}).map((_,i)=>`<rect x="${125 + i*36}" y="88" width="22" height="74" rx="4" fill="#090d16" stroke="#eab308" stroke-width="2"/><line x1="${136 + i*36}" y1="96" x2="${136 + i*36}" y2="154" stroke="#facc15" stroke-width="3"/>`).join('')}
+              <text x="300" y="220" fill="#facc15" font-size="14" font-weight="bold" text-anchor="middle" font-family="JetBrains Mono">10-SLOT GOLD INTERFACE CONNECTOR (T30 / T40 / T50)</text>
+              <text x="300" y="246" fill="#94a3b8" font-size="12" text-anchor="middle">PSU WAKE-UP: 54.0V / 1.5A–2.0A → 52.5V</text>
+            </svg>`,
+        2: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="45" y="55" width="510" height="205" rx="14" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+              <text x="300" y="85" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle" font-family="JetBrains Mono">CELL SIDE PROTECTION BOARD — SMD FUSES (B1–B13)</text>
+              ${Array.from({length:7}).map((_,i)=>`
+                <rect x="${68 + i*68}" y="108" width="52" height="26" rx="4" fill="#475569"/>
+                <rect x="${80 + i*68}" y="146" width="28" height="18" rx="3" fill="#16a34a" stroke="#4ade80"/>
+                <text x="${94 + i*68}" y="159" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">F${i*2+1}</text>
+                <rect x="${68 + i*68}" y="176" width="52" height="26" rx="4" fill="#475569"/>
+              `).join('')}
+              <text x="300" y="236" fill="#4ade80" font-size="12" text-anchor="middle">NO BEEP = OPEN FUSE → SOLDER JUMPER AT 320°C</text>
+            </svg>`,
+        3: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="70" y="45" width="460" height="225" rx="16" fill="#1e293b" stroke="#94a3b8" stroke-width="2.5"/>
+              <rect x="105" y="70" width="390" height="145" rx="8" fill="#090d16" stroke="#22c55e" stroke-width="2"/>
+              <text x="300" y="96" fill="#4ade80" font-size="14" font-weight="bold" text-anchor="middle" font-family="JetBrains Mono">24S515A ACTIVE EQUALIZER — 14S</text>
+              <text x="140" y="132" fill="#e2e8f0" font-size="12" font-family="JetBrains Mono">CURR: 4.000 A</text>
+              <text x="140" y="156" fill="#e2e8f0" font-size="12" font-family="JetBrains Mono">PACK: 56.87 V</text>
+              <text x="140" y="180" fill="#4ade80" font-size="13" font-weight="bold" font-family="JetBrains Mono">DELTA: 0.015 V</text>
+              <text x="340" y="132" fill="#38bdf8" font-size="12" font-family="JetBrains Mono">MAX: 4.070 V</text>
+              <text x="340" y="156" fill="#38bdf8" font-size="12" font-family="JetBrains Mono">MIN: 4.055 V</text>
+              <text x="340" y="180" fill="#fbbf24" font-size="12" font-family="JetBrains Mono">SERIES: 14S OK</text>
+              <text x="300" y="246" fill="#cbd5e1" font-size="12" text-anchor="middle">Single-Cell Recovery: 1.0A → 3.30V | 2.0A → 3.80V</text>
+            </svg>`,
+        4: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="65" y="75" width="120" height="165" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+              <text x="125" y="155" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">CYCLE CHIP</text>
+              <text x="125" y="175" fill="#94a3b8" font-size="10" text-anchor="middle">T20 / T30 / T40</text>
+              <rect x="410" y="55" width="130" height="205" rx="12" fill="#0f172a" stroke="#22c55e" stroke-width="2"/>
+              <text x="475" y="82" fill="#4ade80" font-size="12" font-weight="bold" text-anchor="middle">BMS PADS</text>
+              <line x1="185" y1="105" x2="410" y2="105" stroke="#ef4444" stroke-width="4"/>
+              <text x="475" y="110" fill="#f87171" font-size="12" font-weight="bold" text-anchor="middle">VCC_A (RED)</text>
+              <line x1="185" y1="142" x2="410" y2="142" stroke="#94a3b8" stroke-width="4"/>
+              <text x="475" y="147" fill="#cbd5e1" font-size="12" font-weight="bold" text-anchor="middle">GND/VC0 (BLK)</text>
+              <line x1="185" y1="179" x2="410" y2="179" stroke="#22c55e" stroke-width="4"/>
+              <text x="475" y="184" fill="#4ade80" font-size="12" font-weight="bold" text-anchor="middle">SDA_A (GRN)</text>
+              <line x1="185" y1="216" x2="410" y2="216" stroke="#3b82f6" stroke-width="4"/>
+              <text x="475" y="221" fill="#60a5fa" font-size="12" font-weight="bold" text-anchor="middle">SCL_A (BLU)</text>
+            </svg>`,
+        5: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <path d="M210 45 H390 V95 H535 V265 H65 V95 H210 Z" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+              <rect x="95" y="120" width="115" height="45" rx="6" fill="#334155" stroke="#cbd5e1" stroke-width="2"/>
+              <text x="152" y="147" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">MEGA 300A</text>
+              <rect x="245" y="135" width="75" height="75" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <text x="282" y="177" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">MCU</text>
+              <rect x="445" y="195" width="72" height="52" rx="6" fill="#450a0a" stroke="#ef4444" stroke-width="2"/>
+              <text x="481" y="225" fill="#fca5a5" font-size="10" font-weight="bold" text-anchor="middle">CAPS SMD</text>
+              <text x="300" y="295" fill="#94a3b8" font-size="12" text-anchor="middle">RESIN: 150°C | UNLOCK: 0-CYCLE MCU + P100</text>
+            </svg>`,
+        6: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="130" y="135" width="340" height="120" rx="18" fill="#1e293b" stroke="#64748b" stroke-width="3"/>
+              <rect x="165" y="155" width="270" height="55" rx="8" fill="#94a3b8" stroke="#f97316" stroke-width="3"/>
+              <text x="300" y="188" fill="#090d16" font-size="15" font-weight="900" text-anchor="middle" font-family="JetBrains Mono">MOLTEN TIN — 280°C</text>
+              <rect x="210" y="65" width="180" height="50" rx="12" fill="#0f172a" stroke="#facc15" stroke-width="2"/>
+              <text x="300" y="95" fill="#facc15" font-size="12" font-weight="bold" text-anchor="middle">10-PIN CONNECTOR</text>
+              <text x="300" y="285" fill="#fb923c" font-size="13" font-weight="bold" text-anchor="middle">REMOVE: 4–5 SEC MAX | SOLDER NEW: 3 SEC</text>
+            </svg>`,
+        7: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <rect x="35" y="75" width="115" height="110" rx="10" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+              <text x="92" y="125" fill="#4ade80" font-size="12" font-weight="bold" text-anchor="middle">14S PACK</text>
+              <text x="92" y="145" fill="#94a3b8" font-size="11" text-anchor="middle">58.8V MAX</text>
+              <rect x="200" y="75" width="140" height="110" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <text x="270" y="120" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">SSR-40DD</text>
+              <text x="270" y="142" fill="#a855f7" font-size="11" font-weight="bold" text-anchor="middle">+ XH-M609</text>
+              <rect x="395" y="75" width="165" height="110" rx="10" fill="#451a03" stroke="#f97316" stroke-width="2"/>
+              <text x="477" y="118" fill="#fdba74" font-size="12" font-weight="bold" text-anchor="middle">4x 20Ω / 150W</text>
+              <text x="477" y="140" fill="#fb923c" font-size="11" text-anchor="middle">Req = 5Ω (~10A)</text>
+              <line x1="150" y1="130" x2="200" y2="130" stroke="#ef4444" stroke-width="3"/>
+              <line x1="340" y1="130" x2="395" y2="130" stroke="#ef4444" stroke-width="3"/>
+              <text x="300" y="240" fill="#4ade80" font-size="13" font-weight="bold" text-anchor="middle">STORAGE: 52.0V | CAPACITY TEST: 47.0V | NEVER &lt; 42.0V</text>
+            </svg>`,
+        8: `<svg viewBox="0 0 600 320" class="w-full h-full max-w-2xl">
+              <circle cx="300" cy="135" r="78" fill="#064e3b" fill-opacity="0.45" stroke="#22c55e" stroke-width="4"/>
+              <path d="M262 135 L288 162 L342 106" fill="none" stroke="#4ade80" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="300" y="250" fill="#fff" font-size="16" font-weight="900" text-anchor="middle">8-POINT FLIGHT RELEASE PROTOCOL</text>
+              <text x="300" y="276" fill="#4ade80" font-size="12" text-anchor="middle">DELTA &lt; 0.030V • 58.8V FULL CHARGE • 14S VERIFIED</text>
+            </svg>`
+      };
+      return svgs[modId] || svgs[0];
+    }
+
+    /**************************************************************************
+     * 11. LABORATÓRIOS PRÁTICOS INTERATIVOS (MÓDULOS 0 A 8)
+     **************************************************************************/
+    function renderModuleLab(modId) {
+      const box = document.getElementById('lab-container');
+      const titleEl = document.getElementById('lab-title');
+      if (state.lab6Interval) { clearInterval(state.lab6Interval); state.lab6Running = false; }
+
+      if (modId === 0) {
+        const titles = { pt: 'Simulador: Ordem Obrigatória de Remontagem BMS', es: 'Simulador: Orden Obligatorio de Montaje BMS', en: 'Simulator: Mandatory BMS Reassembly Order', fr: 'Simulateur : Ordre Obligatoire de Remontage BMS', tr: 'Simülatör: Zorunlu BMS Montaj Sırası' };
+        titleEl.textContent = titles[state.lang];
+        const steps = [
+          { id: 0, label: '1. Cabos 6 (NTC) e 5 (Células 1–7)' },
+          { id: 1, label: '2. PAUSA OBRIGATÓRIA DE 5 SEGUNDOS' },
+          { id: 2, label: '3. Cabo 4 (Células 8–14)' },
+          { id: 3, label: '4. Terminal Positivo (BAT+)' },
+          { id: 4, label: '5. Terminal Negativo (BAT-)' }
+        ];
+        const shuffled = [steps[3], steps[0], steps[4], steps[2], steps[1]];
+        box.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex flex-wrap gap-2">
+              ${shuffled.map(s => {
+                const done = s.id < state.lab0Step;
+                return `<button onclick="clickLab0(${s.id})" ${done ? 'disabled' : ''} class="px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition ${done ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 opacity-75' : 'bg-slate-950 border-slate-700 hover:border-emerald-400 text-slate-200'}">${done ? '✓ ' : ''}${s.label}</button>`;
+              }).join('')}
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <span class="text-xs font-mono-tech ${state.lab0Step === 5 ? 'text-emerald-400 font-bold' : 'text-slate-400'}">
+                ${state.lab0Step === 5 ? t('correct') + ' (5/5)' : `Step: ${state.lab0Step}/5`}
+              </span>
+              <button onclick="state.lab0Step=0; renderModuleLab(0);" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">${t('reset')}</button>
+            </div>
+          </div>
+        `;
+      } else if (modId === 1) {
+        const titles = { pt: 'Simulador Interativo de Códigos de LEDs DJI', es: 'Simulador Interactivo de Códigos LED DJI', en: 'Interactive DJI 4-LED Fault Simulator', fr: 'Simulateur Interactif des 4 LEDs DJI', tr: 'Etkileşimli DJI 4 LED Hata Simülatörü' };
+        titleEl.textContent = titles[state.lang];
+        const patterns = {
+          led2: { leds: [0,1,0,0], label: 'LED 2', desc: { pt: 'Sobretensão ou falha na placa BMS (testar capacitores e MOSFETs).', es: 'Sobretensión o falla en placa BMS (probar capacitores y MOSFETs).', en: 'Overvoltage or BMS fault (test ceramic capacitors & MOSFETs).', fr: 'Surtension ou panne BMS (tester condensateurs et MOSFETs).', tr: 'Aşırı voltaj veya BMS arızası (kondansatör ve MOSFET testi).' } },
+          led3: { leds: [0,0,1,0], label: 'LED 3', desc: { pt: 'Subtensão crítica (<52V) ou curto-circuito na linha de potência.', es: 'Subtensión crítica (<52V) o cortocircuito en potencia.', en: 'Critical undervoltage (<52V) or power rail short circuit.', fr: 'Sous-tension critique (<52V) ou court-circuit puissance.', tr: 'Kritik düşük voltaj (<52V) veya güç hattı kısa devresi.' } },
+          led4: { leds: [0,0,0,1], label: 'LED 4', desc: { pt: 'Temperatura anormal no conector (sensor NTC ou placa de interface).', es: 'Temperatura anormal en conector (sensor NTC o placa interfaz).', en: 'Abnormal connector temperature (NTC sensor or interface board).', fr: 'Température anormale connecteur (NTC ou carte d’interface).', tr: 'Anormal konnektör sıcaklığı (NTC veya arayüz kartı).' } },
+          led23: { leds: [0,1,1,0], label: 'LEDs 2 + 3', desc: { pt: 'Desbalanceamento severo ou fusível SMD aberto na placa lateral.', es: 'Desbalanceo severo o fusible SMD abierto en placa lateral.', en: 'Severe imbalance or blown SMD fuse on cell side board.', fr: 'Déséquilibre sévère ou fusible SMD coupé sur carte latérale.', tr: 'Ciddi dengesizlik veya yan kartta açık SMD sigorta.' } },
+          led34: { leds: [0,0,1,1], label: 'LEDs 3 + 4', desc: { pt: 'Falha de autenticação / certificação (conector oxidado ou Chip de Ciclo).', es: 'Fallo de autenticación / certificación (conector o Chip de Ciclo).', en: 'Authentication failure (corroded connector or Cycle Chip).', fr: 'Échec d’authentification (connecteur oxydé ou Puce de Cycle).', tr: 'Doğrulama hatası (oksitli konnektör veya Döngü Çipi).' } },
+          ledAll: { leds: [1,1,1,1], label: '4 LEDs', desc: { pt: 'Bloqueio definitivo do MCU (>5 toques no Power). Trocar MCU 0 ciclos.', es: 'Bloqueo definitivo del MCU (>5 toques). Cambiar MCU 0 ciclos.', en: 'Permanent MCU lock (>5 Power presses). Swap 0-cycle MCU + P100.', fr: 'Verrouillage MCU (>5 appuis Power). Remplacer MCU 0 cycle.', tr: 'Kalıcı MCU kilidi (>5 Güç basma). 0 döngü MCU değişimi.' } }
+        };
+        const cur = patterns[state.lab1Pattern];
+        box.innerHTML = `
+          <div class="flex flex-col sm:flex-row items-center gap-6">
+            <div class="bg-slate-950 border border-slate-700 rounded-2xl px-6 py-5 flex items-center gap-3 shrink-0">
+              ${cur.leds.map((on, i) => `<div class="w-5 h-10 rounded-full bg-emerald-500 ${on ? 'led-blink' : 'led-off'}" title="LED ${i+1}"></div>`).join('')}
+              <div class="ml-2 w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center text-slate-400 font-bold text-xs">⏻</div>
+            </div>
+            <div class="flex-1 space-y-3 w-full">
+              <div class="flex flex-wrap gap-1.5">
+                ${Object.keys(patterns).map(k => `<button onclick="state.lab1Pattern='${k}'; renderModuleLab(1);" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition ${state.lab1Pattern===k ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-slate-950 border-slate-700 text-slate-300 hover:border-slate-500'}">${patterns[k].label}</button>`).join('')}
+              </div>
+              <div class="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/30 text-xs sm:text-sm text-emerald-200 font-medium">
+                ${cur.desc[state.lang]}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (modId === 2) {
+        const titles = { pt: 'Bancada Multímetro (Bip): Encontre e Jumpeie os 2 Fusíveis SMD Abertos', es: 'Banco Multímetro (Bip): Encuentra y Puentea los 2 Fusibles SMD Abiertos', en: 'Multimeter Continuity Bench: Find & Bridge the 2 Blown SMD Fuses', fr: 'Banc Multimètre (Bip) : Trouvez et Pontez les 2 Fusibles SMD Ouverts', tr: 'Multimetre Tezgahı: Açık 2 SMD Sigortayı Bulun ve Köprüleyin' };
+        titleEl.textContent = titles[state.lang];
+        const openFuses = [4, 11];
+        const seriesCount = 12 + state.lab2FixedFuses.length;
+        box.innerHTML = `
+          <div class="space-y-4">
+            <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-4 py-3">
+              <span class="text-xs font-mono-tech text-slate-400">24S515A READOUT:</span>
+              <span class="text-lg font-black font-mono-tech ${seriesCount===14 ? 'text-emerald-400' : 'text-amber-400'}">${seriesCount}S ${seriesCount===14 ? '✓ OK' : '⚠ MISSING'}</span>
+            </div>
+            <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+              ${Array.from({length:13}).map((_, idx) => {
+                const n = idx + 1;
+                const isOpen = openFuses.includes(n) && !state.lab2FixedFuses.includes(n);
+                const isFixed = state.lab2FixedFuses.includes(n);
+                return `<button onclick="testSmdFuse(${n})" class="p-2.5 rounded-xl border text-center transition ${isFixed ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'bg-slate-950 border-slate-700 hover:border-amber-400 text-slate-200'}">
+                  <div class="text-[10px] font-mono-tech text-slate-400">B${n}</div>
+                  <div class="text-xs font-black mt-0.5">${isFixed ? 'JUMPER ✓' : 'F'+n}</div>
+                </button>`;
+              }).join('')}
+            </div>
+            <div class="flex justify-end">
+              <button onclick="state.lab2FixedFuses=[]; renderModuleLab(2);" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-bold">${t('reset')}</button>
+            </div>
+          </div>
+        `;
+      } else if (modId === 3) {
+        const titles = { pt: 'Simulador Equalizadora 24S515A (Meta: Delta < 0,015V)', es: 'Simulador Ecualizadora 24S515A (Meta: Delta < 0,015V)', en: '24S515A Equalizer Simulator (Target: Delta < 0.015V)', fr: 'Simulateur Équilibreuse 24S515A (Cible : Delta < 0,015V)', tr: '24S515A Dengeleyici Simülatörü (Hedef: Delta < 0,015V)' };
+        titleEl.textContent = titles[state.lang];
+        const ok = state.lab3Delta <= 0.015;
+        box.innerHTML = `
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <div class="space-y-1">
+              <div class="text-xs font-mono-tech text-slate-400">DELTA ATUAL (MAX - MIN):</div>
+              <div class="text-3xl font-black font-mono-tech ${ok ? 'text-emerald-400' : 'text-amber-400'}">${state.lab3Delta.toFixed(3)} V</div>
+              <div class="text-xs ${ok ? 'text-emerald-300' : 'text-slate-400'}">${ok ? '✅ PACK EQUALIZADO (< 0,015V)' : '⚡ 3.5A Active Balancing'}</div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="runEqualizerPulse()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold">⚡ Equalizar (3.5A)</button>
+              <button onclick="state.lab3Delta=0.240; renderModuleLab(3);" class="px-3 py-2.5 rounded-xl bg-slate-800 text-xs font-bold">${t('reset')}</button>
+            </div>
+          </div>
+        `;
+      } else if (modId === 4) {
+        const titles = { pt: 'Pinagem Clicável: 4 Vias do Chip de Ciclo na Placa-Mãe', es: 'Pinout Interactivo: 4 Vías del Chip de Ciclo en la BMS', en: 'Interactive Pinout: 4-Wire Cycle Chip on BMS', fr: 'Brochage Interactif : 4 Fils de la Puce de Cycle', tr: 'Etkileşimli Pin Dizilimi: 4 Kablolu Döngü Çipi' };
+        titleEl.textContent = titles[state.lang];
+        const pairs = [
+          { color: 'RED', hex: 'bg-red-600', pad: 'VCC_A' },
+          { color: 'BLACK', hex: 'bg-slate-700', pad: 'GND / VC0' },
+          { color: 'GREEN', hex: 'bg-emerald-600', pad: 'SDA_A' },
+          { color: 'BLUE', hex: 'bg-blue-600', pad: 'SCL_A' }
+        ];
+        box.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${pairs.map(p => {
+              const wired = !!state.lab4Wired[p.color];
+              return `<button onclick="state.lab4Wired['${p.color}']=!state.lab4Wired['${p.color}']; renderModuleLab(4);" class="p-3.5 rounded-xl border flex items-center justify-between transition ${wired ? 'bg-emerald-500/15 border-emerald-500' : 'bg-slate-950 border-slate-800 hover:border-slate-600'}">
+                <span class="flex items-center gap-2.5"><span class="w-4 h-4 rounded-full ${p.hex}"></span><span class="text-xs font-bold text-white">${p.color}</span></span>
+                <span class="font-mono-tech text-xs font-bold ${wired ? 'text-emerald-400' : 'text-slate-400'}">→ ${p.pad} ${wired ? '✓' : ''}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        `;
+      } else if (modId === 5) {
+        const titles = { pt: 'Checklist de Curto na BMS (LED 2 Piscando)', es: 'Checklist de Corto en BMS (LED 2 Parpadeando)', en: 'BMS Short-Circuit Checklist (Blinking LED 2)', fr: 'Checklist Court-Circuit BMS (LED 2 Clignotante)', tr: 'BMS Kısa Devre Kontrol Listesi (LED 2)' };
+        titleEl.textContent = titles[state.lang];
+        const checks = ['1. Remover resina a 150°C (espátula plástica)', '2. Continuidade Fusível MEGA 300A', '3. Teste diodo nos MOSFETs de potência', '4. Capacitores cerâmicos (canto inferior direito)'];
+        box.innerHTML = `
+          <div class="space-y-2">
+            ${checks.map((c, i) => {
+              const on = state.lab5Checked.includes(i);
+              return `<button onclick="toggleLab5(${i})" class="w-full text-left p-3 rounded-xl border text-xs sm:text-sm font-semibold flex items-center gap-3 transition ${on ? 'bg-emerald-500/15 border-emerald-500 text-emerald-200' : 'bg-slate-950 border-slate-800 text-slate-300'}">
+                <span>${on ? '✅' : '⬜'}</span><span>${c}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        `;
+      } else if (modId === 6) {
+        const titles = { pt: 'Cronômetro Térmico da Banheira de Estanho (280°C • Alvo: 4,0s a 5,0s)', es: 'Cronómetro Térmico del Baño de Estaño (280°C • Meta: 4,0s–5,0s)', en: 'Solder Pot Thermal Timer (280°C • Target: 4.0s–5.0s)', fr: 'Chronomètre Thermique Bain d’Étain (280°C • Cible : 4,0s–5,0s)', tr: 'Lehim Potası Termal Zamanlayıcı (280°C • Hedef: 4,0–5,0 sn)' };
+        titleEl.textContent = titles[state.lang];
+        const sec = state.lab6Timer.toFixed(1);
+        const statusColor = state.lab6Timer === 0 ? 'text-slate-300' : (state.lab6Timer >= 4 && state.lab6Timer <= 5) ? 'text-emerald-400' : state.lab6Timer > 5 ? 'text-rose-400' : 'text-amber-400';
+        box.innerHTML = `
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <div>
+              <div class="text-xs font-mono-tech text-orange-400">TEMP: 280°C</div>
+              <div id="lab6-display" class="text-3xl font-black font-mono-tech ${statusColor}">${sec} s</div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="toggleLab6Timer()" class="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs sm:text-sm font-bold">${state.lab6Running ? '⏹ Retirar Placa' : '🔥 Mergulhar Pinos'}</button>
+              <button onclick="state.lab6Timer=0; renderModuleLab(6);" class="px-3 py-2.5 rounded-xl bg-slate-800 text-xs font-bold">${t('reset')}</button>
+            </div>
+          </div>
+        `;
+      } else if (modId === 7) {
+        const titles = { pt: 'Simulador Digital XH-M609 — Ajuste de Tensão de Corte', es: 'Simulador Digital XH-M609 — Ajuste de Tensión de Corte', en: 'XH-M609 Digital Cutoff Simulator', fr: 'Simulateur Digital XH-M609 — Tension de Coupure', tr: 'XH-M609 Dijital Kesme Voltajı Simülatörü' };
+        titleEl.textContent = titles[state.lang];
+        const v = state.lab7Cutoff;
+        const msg = v < 42
+          ? '🚨 PERIGO: Abaixo de 42,0V (<3,0V/célula) causa dano permanente!'
+          : v === 52
+            ? '✅ MODO STORAGE (52,0V) — Ideal para armazenamento seguro.'
+            : v === 47
+              ? '✅ TESTE DE CAPACIDADE SOB CARGA (47,0V) — Revela queda de células.'
+              : '⚡ Faixa segura operacional (42,0V a 58,8V).';
+        box.innerHTML = `
+          <div class="space-y-4 bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="px-5 py-2.5 rounded-xl bg-black border-2 border-red-500/60 font-mono-tech text-3xl font-black text-red-500">${v.toFixed(1)} V</div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="state.lab7Cutoff=52.0; renderModuleLab(7);" class="px-3 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold">Storage (52.0V)</button>
+                <button onclick="state.lab7Cutoff=47.0; renderModuleLab(7);" class="px-3 py-2 rounded-lg bg-sky-600/20 border border-sky-500/50 text-sky-300 text-xs font-bold">Load Test (47.0V)</button>
+                <button onclick="state.lab7Cutoff=39.0; renderModuleLab(7);" class="px-3 py-2 rounded-lg bg-rose-600/20 border border-rose-500/50 text-rose-300 text-xs font-bold">Danger (39.0V)</button>
+              </div>
+            </div>
+            <input type="range" min="36" max="56" step="0.5" value="${v}" oninput="state.lab7Cutoff=parseFloat(this.value); renderModuleLab(7);" class="w-full accent-emerald-500" />
+            <p class="text-xs sm:text-sm font-bold ${v < 42 ? 'text-rose-400' : 'text-emerald-300'}">${msg}</p>
+          </div>
+        `;
+      } else {
+        const titles = { pt: 'Validação Final e Emissão do Certificado', es: 'Validación Final y Emisión del Certificado', en: 'Final Validation & Certificate Issuance', fr: 'Validation Finale et Certificat', tr: 'Son Doğrulama ve Sertifika' };
+        titleEl.textContent = titles[state.lang];
+        box.innerHTML = `
+          <div class="flex flex-wrap gap-3">
+            <button onclick="switchView('workshop')" class="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold">${t('navWorkshop')}</button>
+            <button onclick="switchView('certificate')" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-bold border border-slate-700">${t('navCert')}</button>
+          </div>
+        `;
+      }
+    }
+
+    function clickLab0(stepId) {
+      if (stepId === state.lab0Step) {
+        state.lab0Step++;
+        if (state.lab0Step === 5) showToast(t('correct'), 'emerald');
+        renderModuleLab(0);
+      } else {
+        showToast(t('wrong'), 'rose');
+      }
+    }
+
+    function testSmdFuse(n) {
+      const openFuses = [4, 11];
+      if (openFuses.includes(n) && !state.lab2FixedFuses.includes(n)) {
+        state.lab2FixedFuses.push(n);
+        showToast(`F${n}: SEM BIP! Jumper aplicado a 320°C ✓`, 'emerald');
+        renderModuleLab(2);
+      } else {
+        showToast(`F${n}: BIP contínuo (OK)`, 'amber');
+      }
+    }
+
+    function runEqualizerPulse() {
+      state.lab3Delta = Math.max(0.012, state.lab3Delta - 0.065);
+      renderModuleLab(3);
+    }
+
+    function toggleLab5(i) {
+      const idx = state.lab5Checked.indexOf(i);
+      if (idx === -1) state.lab5Checked.push(i);
+      else state.lab5Checked.splice(idx, 1);
+      renderModuleLab(5);
+    }
+
+    function toggleLab6Timer() {
+      if (state.lab6Running) {
+        clearInterval(state.lab6Interval);
+        state.lab6Running = false;
+        if (state.lab6Timer >= 4 && state.lab6Timer <= 5) showToast(t('correct') + ' (4–5s)', 'emerald');
+        else showToast(state.lab6Timer > 5 ? '⚠ >5s: Risco de superaquecimento!' : '⚠ <4s: Estanho ainda não fundiu!', 'rose');
+        renderModuleLab(6);
+      } else {
+        state.lab6Timer = 0;
+        state.lab6Running = true;
+        renderModuleLab(6);
+        state.lab6Interval = setInterval(() => {
+          state.lab6Timer += 0.1;
+          const el = document.getElementById('lab6-display');
+          if (el) el.textContent = state.lab6Timer.toFixed(1) + ' s';
+        }, 100);
+      }
+    }
+
+    /**************************************************************************
+     * 12. ESTÚDIO DE FOTOS REAIS (UPLOAD, COMPRESSÃO, BACKUP E EXPORT HTML)
+     **************************************************************************/
+    let quickUploadTargetId = null;
+
+    function triggerQuickPhotoUpload(cid = null) {
+      quickUploadTargetId = cid || MODULES[state.currentMod].primaryPhoto;
+      const inp = document.getElementById('quick-photo-input');
+      inp.value = '';
+      inp.click();
+    }
+
+    function compressImageFile(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1200;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+            else { w = Math.round(w * maxDim / h); h = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          callback(dataUrl);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handlePhotoUploadForComponent(cid, file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      compressImageFile(file, (dataUrl) => {
+        state.photos[cid] = dataUrl;
+        savePhotos();
+        applyBrandLogoIfUploaded();
+        renderPhotoStudio();
+        renderCurrentLesson();
+        showToast(t('toastPhotoSaved'), 'emerald');
+      });
+    }
+
+    function applyBrandLogoIfUploaded() {
+      const logoSrc = state.photos['c01'];
+      const hdrBox = document.getElementById('header-logo-box');
+      const certBox = document.getElementById('cert-logo-wrap');
+      if (logoSrc) {
+        hdrBox.innerHTML = `<img src="${logoSrc}" alt="VoltMaster" class="w-full h-full object-cover" />`;
+        certBox.innerHTML = `<img src="${logoSrc}" alt="VoltMaster" class="w-full h-full object-cover" />`;
+      }
+    }
+
+    function renderPhotoStudio() {
+      const uploadedCount = Object.keys(state.photos).filter(k => !!state.photos[k]).length;
+      document.getElementById('photos-count-text').textContent = `${uploadedCount} / ${PHOTO_COMPONENTS.length}`;
+      document.getElementById('photos-progress-bar').style.width = `${Math.round((uploadedCount / PHOTO_COMPONENTS.length) * 100)}%`;
+
+      // Filtros
+      const filterBar = document.getElementById('photos-filter-bar');
+      const filters = [{ id: 'all', label: t('filterAll') }, ...MODULES.slice(0, 8).map(m => ({ id: String(m.id), label: m.badge }))];
+      filterBar.innerHTML = filters.map(f => `
+        <button onclick="state.photoFilter='${f.id}'; renderPhotoStudio();" class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+          state.photoFilter === f.id ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+        }">${f.label}</button>
+      `).join('');
+
+      // Cards
+      const grid = document.getElementById('photos-grid');
+      const items = state.photoFilter === 'all'
+        ? PHOTO_COMPONENTS
+        : PHOTO_COMPONENTS.filter(c => String(c.mod) === state.photoFilter);
+
+      grid.innerHTML = items.map(c => {
+        const src = state.photos[c.id];
+        const modBadge = MODULES[c.mod] ? MODULES[c.mod].badge : 'GERAL';
+        const label = c.labels[state.lang];
+        return `
+          <div class="bg-slate-900/90 border ${src ? 'border-emerald-500/40' : 'border-slate-800'} rounded-2xl overflow-hidden flex flex-col justify-between shadow-lg">
+            <div>
+              <div class="px-3.5 py-2.5 border-b border-slate-800/80 flex items-center justify-between gap-2">
+                <span class="text-xs font-mono-tech font-bold text-emerald-400">#${c.num}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300">${modBadge}</span>
+              </div>
+              <div
+                ondragover="event.preventDefault(); this.classList.add('ring-2','ring-emerald-400');"
+                ondragleave="this.classList.remove('ring-2','ring-emerald-400');"
+                ondrop="event.preventDefault(); this.classList.remove('ring-2','ring-emerald-400'); handlePhotoUploadForComponent('${c.id}', event.dataTransfer.files[0]);"
+                onclick="${src ? `openLightbox(state.photos['${c.id}'], '#${c.num} — ${label.replace(/'/g, '')}')` : `document.getElementById('file-${c.id}').click()`}"
+                class="aspect-video bg-slate-950 flex flex-col items-center justify-center p-3 cursor-pointer relative overflow-hidden group">
+                ${src
+                  ? `<img src="${src}" alt="${label}" class="w-full h-full object-contain group-hover:scale-105 transition duration-300" />`
+                  : `<div class="text-center space-y-1.5">
+                       <div class="text-2xl">📷</div>
+                       <p class="text-[11px] text-slate-500 px-4">${t('noPhotoYet')}</p>
+                     </div>`}
+              </div>
+              <div class="p-3.5">
+                <h3 class="text-xs sm:text-sm font-bold text-white leading-snug">${label}</h3>
+              </div>
+            </div>
+            <div class="px-3.5 pb-3.5 flex items-center gap-2">
+              <input type="file" id="file-${c.id}" accept="image/*" class="hidden" onchange="handlePhotoUploadForComponent('${c.id}', this.files[0])" />
+              <button onclick="document.getElementById('file-${c.id}').click()" class="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition ${src ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}">${src ? t('replaceBtn') : t('uploadBtn')}</button>
+              ${src ? `<button onclick="openLightbox(state.photos['${c.id}'], '#${c.num} — ${label.replace(/'/g, '')}')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">🔍</button>` : ''}
+              ${src ? `<button onclick="requestRemovePhoto('${c.id}')" class="px-3 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-xs font-bold text-rose-300 border border-rose-500/30">🗑️</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function requestRemovePhoto(cid) {
+      showConfirmModal(t('confirmRemoveTitle'), t('confirmRemoveMsg'), () => {
+        delete state.photos[cid];
+        savePhotos();
+        renderPhotoStudio();
+        renderCurrentLesson();
+        showToast(t('toastPhotoRemoved'), 'amber');
+      });
+    }
+
+    function exportPhotosJSON() {
+      const blob = new Blob([JSON.stringify(state.photos, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'voltmaster-fotos-backup.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportStandaloneHTML() {
+      try {
+        const clone = document.documentElement.cloneNode(true);
+        const emb = clone.querySelector('#voltmaster-embedded-photos');
+        if (emb) emb.textContent = JSON.stringify(state.photos);
+        const htmlContent = '<!DOCTYPE html>\n' + clone.outerHTML;
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'voltmaster-academy-com-fotos.html';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(t('toastExported'), 'emerald');
+      } catch (e) {
+        console.error(e);
+        showToast('Erro ao exportar HTML.', 'rose');
+      }
+    }
+
+    /**************************************************************************
+     * 13. OFICINA (CHECKLIST 8 PONTOS + ORÇAMENTO WHATSAPP + CERTIFICADO)
+     **************************************************************************/
+    function renderWorkshop() {
+      // Checklist
+      const chkWrap = document.getElementById('checklist-items');
+      let count = 0;
+      chkWrap.innerHTML = CHECKLIST_DATA.map((item, i) => {
+        const on = state.checklist[i];
+        if (on) count++;
+        return `
+          <button onclick="toggleChecklist(${i})" class="w-full text-left p-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center gap-3 transition ${
+            on ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-100' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+          }">
+            <span class="text-base">${on ? '✅' : '⬜'}</span>
+            <span><strong class="font-mono-tech text-emerald-400 mr-1">${i+1}.</strong> ${item[state.lang]}</span>
+          </button>
+        `;
+      }).join('');
+      document.getElementById('chk-score').textContent = `${count}/8`;
+      const banner = document.getElementById('chk-release-banner');
+      if (count === 8) {
+        banner.textContent = t('chkApproved');
+        banner.className = 'mt-4 p-3.5 rounded-xl border text-xs sm:text-sm font-bold text-center bg-emerald-500/20 border-emerald-500 text-emerald-300';
+      } else {
+        banner.textContent = t('chkPending');
+        banner.className = 'mt-4 p-3.5 rounded-xl border text-xs sm:text-sm font-bold text-center bg-slate-950 border-slate-800 text-slate-400';
+      }
+
+      // Orçamento
+      const srvWrap = document.getElementById('pricing-services-list');
+      let total = 0;
+      srvWrap.innerHTML = PRICING_SERVICES.map(s => {
+        const checked = !!state.selectedServices[s.id];
+        if (checked) total += s.price;
+        return `
+          <button onclick="toggleService('${s.id}')" class="w-full text-left p-3 rounded-xl border flex items-center justify-between gap-2 transition ${
+            checked ? 'bg-emerald-500/15 border-emerald-500/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+          }">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span>${checked ? '☑️' : '⬜'}</span>
+              <span class="text-xs font-semibold truncate">${s.names[state.lang]}</span>
+            </div>
+            <span class="text-xs font-mono-tech font-bold text-emerald-400 shrink-0">${s.range}</span>
+          </button>
+        `;
+      }).join('');
+      document.getElementById('quote-total-value').textContent = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    }
+
+    function toggleChecklist(i) {
+      state.checklist[i] = !state.checklist[i];
+      saveState();
+      renderWorkshop();
+    }
+
+    function toggleService(id) {
+      state.selectedServices[id] = !state.selectedServices[id];
+      renderWorkshop();
+    }
+
+    function resetQuote() {
+      state.selectedServices = {};
+      document.getElementById('quote-client').value = '';
+      renderWorkshop();
+    }
+
+    function copyWhatsAppQuote() {
+      const client = document.getElementById('quote-client').value.trim() || 'Cliente';
+      const model = document.getElementById('quote-model').value;
+      const chosen = PRICING_SERVICES.filter(s => state.selectedServices[s.id]);
+      const total = chosen.reduce((acc, s) => acc + s.price, 0);
+      const lines = [
+        `⚡ *VOLTMASTER — ORÇAMENTO TÉCNICO*`,
+        `👤 ${client} | 🔋 ${model}`,
+        `--------------------------------`,
+        ...(chosen.length ? chosen.map(s => `• ${s.names[state.lang]} (${s.range})`) : ['• Diagnóstico de Bancada']),
+        `--------------------------------`,
+        `💰 *Total Estimado:* R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        `📞 Suporte VoltMaster: (61) 9 8524-5726`
+      ].join('\n');
+
+      const ta = document.createElement('textarea');
+      ta.value = lines;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(t('toastCopied'), 'emerald');
+      } catch (e) {
+        showToast('Erro ao copiar.', 'rose');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function updateCertificate() {
+      const name = document.getElementById('cert-student-name').value.trim() || 'Douglas Coutrim Silva';
+      document.getElementById('cert-display-name').textContent = name;
+      const now = new Date();
+      document.getElementById('cert-date-val').textContent = now.toLocaleDateString(LANG_META[state.lang].htmlLang);
+    }
+
+    /**************************************************************************
+     * 14. INICIALIZAÇÃO SEGURA
+     **************************************************************************/
+    function initApp() {
+      try {
+        loadPersistedData();
+        applyBrandLogoIfUploaded();
+
+        // Listeners
+        document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+        document.getElementById('lightbox-modal').addEventListener('click', (e) => {
+          if (e.target.id === 'lightbox-modal') closeLightbox();
+        });
+        document.getElementById('confirm-cancel').addEventListener('click', closeConfirmModal);
+        document.getElementById('confirm-ok').addEventListener('click', () => {
+          if (pendingConfirmCb) pendingConfirmCb();
+          closeConfirmModal();
+        });
+        document.getElementById('quick-photo-input').addEventListener('change', (e) => {
+          if (e.target.files[0] && quickUploadTargetId) {
+            handlePhotoUploadForComponent(quickUploadTargetId, e.target.files[0]);
+          }
+        });
+        document.getElementById('restore-json-input').addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const r = new FileReader();
+          r.onload = (ev) => {
+            try {
+              const data = JSON.parse(ev.target.result);
+              state.photos = Object.assign({}, state.photos, data);
+              savePhotos();
+              applyBrandLogoIfUploaded();
+              renderPhotoStudio();
+              renderCurrentLesson();
+              showToast(t('toastPhotoSaved'), 'emerald');
+            } catch (err) {
+              showToast('JSON inválido.', 'rose');
+            }
+          };
+          r.readAsText(file);
+        });
+        document.getElementById('cert-student-name').addEventListener('input', () => {
+          updateCertificate();
+          saveState();
+        });
+
+        setLanguage(state.lang, true);
+        switchView('course');
+      } catch (err) {
+        console.error('Erro na inicialização:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
