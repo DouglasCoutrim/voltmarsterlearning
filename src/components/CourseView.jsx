@@ -462,7 +462,7 @@ function CourseView({
             </div>
 
             <div className="relative aspect-video bg-gradient-to-br from-slate-950 via-[#0d1526] to-slate-950 overflow-hidden flex items-center justify-center">
-              <div id="player-svg-layer" className="w-full h-full flex items-center justify-center p-4">
+              <div id="player-svg-layer" className="w-full h-full flex items-center justify-center px-4 pt-4 pb-24">
                 <div
                   className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
                   dangerouslySetInnerHTML={{ __html: buildModuleSVG(currentMod) }}
