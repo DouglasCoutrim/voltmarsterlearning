@@ -17,7 +17,7 @@ export default function WorkshopView({
   );
 
   return (
-    <section id="view-workshop" className="hidden space-y-6">
+    <section id="view-workshop" className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">

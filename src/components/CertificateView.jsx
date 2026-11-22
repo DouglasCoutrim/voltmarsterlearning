@@ -6,7 +6,7 @@ export default function CertificateView({ lang, studentName, setStudentName, com
   const dateStr = now.toLocaleDateString(LANG_META[lang].htmlLang);
 
   return (
-    <section id="view-certificate" className="hidden space-y-5">
+    <section id="view-certificate" className="space-y-5">
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-end justify-between gap-4">
         <div className="flex-1 min-w-[220px]">
           <label id="lbl-cert-student" className="block text-xs font-bold text-slate-400 mb-1.5">

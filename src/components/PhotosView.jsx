@@ -25,7 +25,7 @@ export default function PhotosView({
     : PHOTO_COMPONENTS.filter(c => String(c.mod) === photoFilter);
 
   return (
-    <section id="view-photos" className="hidden space-y-5">
+    <section id="view-photos" className="space-y-5">
       <div className="bg-gradient-to-r from-slate-900 via-[#0f1c2e] to-slate-900 border border-emerald-500/30 rounded-2xl p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
