@@ -29,5 +29,5 @@
 - Use the `volt` color theme (emerald/green accents) defined in `tailwind.config.js` for primary actions and highlights.
 - Buttons use `onClick` handlers for simple actions; complex logic lives in named functions in the component.
 - Modals/toasts are React components (`ToastContainer`, `LightboxModal`, `ConfirmModal`) — do not replace with portal-based components.
-- Supabase auth state is managed in `App.jsx` via `onAuthStateChange`. User data (progress, photos, checklist) is loaded from Supabase when authenticated.
-- Photo uploads go to Supabase Storage (`user-photos` bucket) with RLS policies ensuring users can only access their own files.
+- Supabase auth state is managed in `App.jsx` via `onAuthStateChange`. All user data is loaded from / saved to Supabase when authenticated: `profiles` (full name), `course_progress`, `user_photos`, `workshop_checklist`, `service_quotes`, `certificates`.
+- Storage buckets: `user-photos` (public, per-user RLS, `getPublicUrl` for lesson/photo display) and `user-files` (private, per-user RLS, JSON backups). Files are always stored under a `<user_id>/` prefix so RLS scopes access per user.

@@ -24,7 +24,10 @@ function App() {
   const [photoFilter, setPhotoFilter] = useState('all');
   const [checklist, setChecklist] = useState(Array(8).fill(false));
   const [selectedServices, setSelectedServices] = useState({});
+  const [quoteClient, setQuoteClient] = useState('');
+  const [quoteModel, setQuoteModel] = useState('DJI Agras T40');
   const [studentName, setStudentName] = useState('Douglas Coutrim Silva');
+  const [certificateIssuedAt, setCertificateIssuedAt] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [lightbox, setLightbox] = useState({ open: false, src: '', title: '' });
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null });
@@ -66,7 +69,15 @@ function App() {
 
   const loadUserData = async () => {
     try {
-      // Load course progress
+      // Profile (full name shown on certificate)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile?.full_name) setStudentName(profile.full_name);
+
+      // Course progress
       const { data: progress } = await supabase
         .from('course_progress')
         .select('*')
@@ -75,7 +86,7 @@ function App() {
         setCompletedModules(progress.filter(p => p.completed).map(p => p.module_id));
       }
 
-      // Load photos
+      // Photos
       const { data: userPhotos } = await supabase
         .from('user_photos')
         .select('*')
@@ -91,7 +102,7 @@ function App() {
         setPhotos(photoMap);
       }
 
-      // Load checklist
+      // Checklist
       const { data: checklistData } = await supabase
         .from('workshop_checklist')
         .select('*')
@@ -102,6 +113,17 @@ function App() {
           newChecklist[item.item_index] = item.completed;
         });
         setChecklist(newChecklist);
+      }
+
+      // Issued certificate
+      const { data: certificate } = await supabase
+        .from('certificates')
+        .select('student_name, issued_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (certificate) {
+        setCertificateIssuedAt(certificate.issued_at);
+        if (certificate.student_name) setStudentName(certificate.student_name);
       }
     } catch (err) {
       console.error('Error loading user data:', err);
@@ -145,7 +167,7 @@ function App() {
 
   // Toast functions
   const showToast = useCallback((msg, tone = 'emerald') => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, msg, tone }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
@@ -298,7 +320,7 @@ function App() {
     if (!file || !file.type.startsWith('image/')) return;
     compressImageFile(file, async (dataUrl) => {
       if (user) {
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage (user-photos bucket)
         const fileName = `${user.id}/${cid}_${Date.now()}.jpg`;
         const { error: uploadError } = await supabase.storage
           .from('user-photos')
@@ -345,7 +367,7 @@ function App() {
           .select('storage_path')
           .eq('user_id', user.id)
           .eq('component_id', cid)
-          .single();
+          .maybeSingle();
         if (photoData) {
           await supabase.storage.from('user-photos').remove([photoData.storage_path]);
           await supabase.from('user_photos').delete().eq('user_id', user.id).eq('component_id', cid);
@@ -378,15 +400,13 @@ function App() {
   // Reset quote
   const resetQuote = useCallback(() => {
     setSelectedServices({});
+    setQuoteClient('');
+    setQuoteModel('DJI Agras T40');
   }, []);
 
-  // Copy WhatsApp quote
-  const copyWhatsAppQuote = useCallback(() => {
-    const client = document.getElementById('quote-client')?.value?.trim() || 'Cliente';
-    const model = document.getElementById('quote-model')?.value || 'DJI Agras T40';
-    const chosen = PRICING_SERVICES.filter(s => selectedServices[s.id]);
-    const total = chosen.reduce((acc, s) => acc + s.price, 0);
-    const lines = [
+  // Build the WhatsApp quote text (shared by copy + save)
+  const buildQuoteText = useCallback((client, model, chosen, total) => {
+    return [
       `⚡ *VOLTMASTER — ORÇAMENTO TÉCNICO*`,
       `👤 ${client} | 🔋 ${model}`,
       `--------------------------------`,
@@ -395,6 +415,14 @@ function App() {
       `💰 *Total Estimado:* R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       `📞 Suporte VoltMaster: (61) 9 8524-5726`,
     ].join('\n');
+  }, [lang]);
+
+  // Copy WhatsApp quote
+  const copyWhatsAppQuote = useCallback(() => {
+    const client = quoteClient.trim() || 'Cliente';
+    const chosen = PRICING_SERVICES.filter(s => selectedServices[s.id]);
+    const total = chosen.reduce((acc, s) => acc + s.price, 0);
+    const lines = buildQuoteText(client, quoteModel, chosen, total);
     const ta = document.createElement('textarea');
     ta.value = lines;
     document.body.appendChild(ta);
@@ -406,7 +434,59 @@ function App() {
       showToast('Erro ao copiar.', 'rose');
     }
     document.body.removeChild(ta);
-  }, [selectedServices, lang, showToast, t]);
+  }, [selectedServices, quoteClient, quoteModel, buildQuoteText, showToast, t]);
+
+  // Persist the quote into the service_quotes table
+  const saveServiceQuote = useCallback(async () => {
+    if (!user) {
+      showToast(t('toastNeedLogin'), 'amber');
+      return;
+    }
+    const client = quoteClient.trim() || 'Cliente';
+    const chosen = PRICING_SERVICES.filter(s => selectedServices[s.id]);
+    const total = chosen.reduce((acc, s) => acc + s.price, 0);
+    const { error } = await supabase.from('service_quotes').insert({
+      user_id: user.id,
+      client_name: client,
+      battery_model: quoteModel,
+      services: chosen.map(s => ({ id: s.id, name: s.names[lang], price: s.price, range: s.range })),
+      total_estimate: total,
+      quote_text: buildQuoteText(client, quoteModel, chosen, total),
+    });
+    if (error) showToast(error.message, 'rose');
+    else showToast(t('toastQuoteSaved'), 'emerald');
+  }, [user, quoteClient, quoteModel, selectedServices, lang, buildQuoteText, showToast, t]);
+
+  // Persist profile full name
+  const saveProfileName = useCallback(async (name) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: user.id, full_name: name, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) showToast(error.message, 'rose');
+    else showToast(t('toastProfileSaved'), 'emerald');
+  }, [user, showToast, t]);
+
+  // Issue (and persist) the completion certificate
+  const issueCertificate = useCallback(async () => {
+    if (!user) {
+      showToast(t('toastNeedLogin'), 'amber');
+      return;
+    }
+    const issuedAt = new Date().toISOString();
+    const { error } = await supabase.from('certificates').upsert({
+      user_id: user.id,
+      student_name: studentName,
+      completed_modules: completedModules,
+      certificate_data: { lang, issued_at: issuedAt, total_modules: MODULES.length },
+    }, { onConflict: 'user_id' });
+    if (error) {
+      showToast(error.message, 'rose');
+    } else {
+      setCertificateIssuedAt(issuedAt);
+      showToast(t('toastCertIssued'), 'emerald');
+    }
+  }, [user, studentName, completedModules, lang, showToast, t]);
 
   // Lab functions
   const clickLab0 = useCallback((stepId) => {
@@ -470,6 +550,28 @@ function App() {
     showToast('Funcionalidade disponível apenas na versão HTML original.', 'amber');
   }, [showToast]);
 
+  // Upload a full backup to the private user-files bucket
+  const uploadBackupToCloud = useCallback(async () => {
+    if (!user) {
+      showToast(t('toastNeedLogin'), 'amber');
+      return;
+    }
+    const payload = {
+      studentName,
+      completedModules,
+      checklist,
+      photos,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const path = `${user.id}/backup-${Date.now()}.json`;
+    const { error } = await supabase.storage
+      .from('user-files')
+      .upload(path, blob, { contentType: 'application/json' });
+    if (error) showToast(error.message, 'rose');
+    else showToast(t('toastCloudSaved'), 'emerald');
+  }, [user, studentName, completedModules, checklist, photos, showToast, t]);
+
   // Auth functions
   const signIn = async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -491,6 +593,7 @@ function App() {
     setCompletedModules([]);
     setPhotos({});
     setChecklist(Array(8).fill(false));
+    setCertificateIssuedAt(null);
   };
 
   if (loading) {
@@ -578,6 +681,7 @@ function App() {
             openLightbox={openLightbox}
             exportPhotosJSON={exportPhotosJSON}
             exportStandaloneHTML={exportStandaloneHTML}
+            uploadBackupToCloud={uploadBackupToCloud}
           />
         )}
 
@@ -588,8 +692,13 @@ function App() {
             toggleChecklist={toggleChecklist}
             selectedServices={selectedServices}
             toggleService={toggleService}
+            quoteClient={quoteClient}
+            setQuoteClient={setQuoteClient}
+            quoteModel={quoteModel}
+            setQuoteModel={setQuoteModel}
             resetQuote={resetQuote}
             copyWhatsAppQuote={copyWhatsAppQuote}
+            saveServiceQuote={saveServiceQuote}
             t={t}
           />
         )}
@@ -599,6 +708,9 @@ function App() {
             lang={lang}
             studentName={studentName}
             setStudentName={setStudentName}
+            saveProfileName={saveProfileName}
+            issueCertificate={issueCertificate}
+            certificateIssuedAt={certificateIssuedAt}
             completedModules={completedModules}
             t={t}
           />

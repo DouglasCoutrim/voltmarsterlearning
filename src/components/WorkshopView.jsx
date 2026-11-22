@@ -7,14 +7,18 @@ export default function WorkshopView({
   toggleChecklist,
   selectedServices,
   toggleService,
+  quoteClient,
+  setQuoteClient,
+  quoteModel,
+  setQuoteModel,
   resetQuote,
   copyWhatsAppQuote,
+  saveServiceQuote,
   t,
 }) {
-  const total = Object.values(selectedServices).reduce(
-    (acc, checked, idx) => (checked ? acc + PRICING_SERVICES[idx].price : acc),
-    0
-  );
+  const chosen = PRICING_SERVICES.filter(s => selectedServices[s.id]);
+  const total = chosen.reduce((acc, s) => acc + s.price, 0);
+  const checklistDone = checklist.filter(c => c).length;
 
   return (
     <section id="view-workshop" className="space-y-6">
@@ -30,7 +34,7 @@ export default function WorkshopView({
               </p>
             </div>
             <span id="chk-score" className="px-3 py-1 rounded-full text-xs font-mono-tech font-bold bg-slate-800 text-emerald-400">
-              {checklist.filter(c => c).length}/8
+              {checklistDone}/8
             </span>
           </div>
           <div id="checklist-items" className="space-y-2.5">
@@ -57,7 +61,16 @@ export default function WorkshopView({
               );
             })}
           </div>
-          <div id="chk-release-banner" className="mt-4 p-3.5 rounded-xl border text-xs sm:text-sm font-bold text-center"></div>
+          <div
+            id="chk-release-banner"
+            className={`mt-4 p-3.5 rounded-xl border text-xs sm:text-sm font-bold text-center ${
+              checklistDone === 8
+                ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
+                : 'bg-slate-950 border-slate-800 text-slate-400'
+            }`}
+          >
+            {checklistDone === 8 ? t('chkApproved') : t('chkPending')}
+          </div>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
@@ -76,6 +89,8 @@ export default function WorkshopView({
                 <input
                   id="quote-client"
                   type="text"
+                  value={quoteClient}
+                  onChange={(e) => setQuoteClient(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-emerald-500 outline-none"
                   placeholder={t('clientName')}
                 />
@@ -86,16 +101,18 @@ export default function WorkshopView({
                 </label>
                 <select
                   id="quote-model"
+                  value={quoteModel}
+                  onChange={(e) => setQuoteModel(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-emerald-500 outline-none"
                 >
                   <option value="DJI Agras T20P">DJI Agras T20P</option>
                   <option value="DJI Agras T30">DJI Agras T30</option>
-                  <option value="DJI Agras T40" selected>DJI Agras T40</option>
+                  <option value="DJI Agras T40">DJI Agras T40</option>
                   <option value="DJI Agras T50">DJI Agras T50</option>
                 </select>
               </div>
             </div>
-            <div id="pricing-services-list">
+            <div id="pricing-services-list" className="space-y-2">
               {PRICING_SERVICES.map((s) => {
                 const checked = !!selectedServices[s.id];
                 return (
@@ -137,6 +154,13 @@ export default function WorkshopView({
                 className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold transition"
               >
                 {t('copyQuote')}
+              </button>
+              <button
+                id="btn-save-quote"
+                onClick={saveServiceQuote}
+                className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-bold transition"
+              >
+                {t('saveQuote')}
               </button>
               <button
                 id="btn-reset-quote"

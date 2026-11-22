@@ -12,6 +12,7 @@ export default function PhotosView({
   openLightbox,
   exportPhotosJSON,
   exportStandaloneHTML,
+  uploadBackupToCloud,
 }) {
   const uploadedCount = Object.keys(photos).filter(k => !!photos[k]).length;
 
@@ -53,6 +54,13 @@ export default function PhotosView({
               className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition"
             >
               {t('backupJson')}
+            </button>
+            <button
+              id="btn-cloud-backup"
+              onClick={uploadBackupToCloud}
+              className="px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition"
+            >
+              {t('cloudBackup')}
             </button>
             <button
               id="btn-restore-json"

@@ -1,9 +1,24 @@
 import React from 'react';
 import { LANG_META } from '../data/languages';
 
-export default function CertificateView({ lang, studentName, setStudentName, completedModules, t }) {
+export default function CertificateView({
+  lang,
+  studentName,
+  setStudentName,
+  saveProfileName,
+  issueCertificate,
+  certificateIssuedAt,
+  completedModules,
+  t,
+}) {
   const now = new Date();
-  const dateStr = now.toLocaleDateString(LANG_META[lang].htmlLang);
+  const issueDate = certificateIssuedAt ? new Date(certificateIssuedAt) : now;
+  const dateStr = issueDate.toLocaleDateString(LANG_META[lang].htmlLang);
+
+  const handlePrint = async () => {
+    await issueCertificate();
+    window.print();
+  };
 
   return (
     <section id="view-certificate" className="space-y-5">
@@ -17,16 +32,27 @@ export default function CertificateView({ lang, studentName, setStudentName, com
             type="text"
             value={studentName}
             onChange={(e) => setStudentName(e.target.value)}
+            onBlur={() => saveProfileName(studentName)}
             className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-emerald-500 outline-none"
           />
         </div>
-        <button
-          id="btn-print-cert"
-          onClick={() => window.print()}
-          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 transition"
-        >
-          {t('printCert')}
-        </button>
+        <div className="flex flex-col items-end gap-1.5">
+          {certificateIssuedAt && (
+            <span
+              id="cert-issued-badge"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+            >
+              ✓ {t('certDateRole')}: {issueDate.toLocaleDateString(LANG_META[lang].htmlLang)}
+            </span>
+          )}
+          <button
+            id="btn-print-cert"
+            onClick={handlePrint}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 transition"
+          >
+            {t('printCert')}
+          </button>
+        </div>
       </div>
 
       <div
